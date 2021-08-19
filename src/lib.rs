@@ -1,7 +1,12 @@
-mod drivers;
+mod axum;
+mod event;
 mod log;
+mod message;
+
+#[macro_use]
+extern crate lazy_static;
 
 pub async fn run() {
     log::init();
-    crate::drivers::axum::run().await;
+    crate::axum::run().await;
 }

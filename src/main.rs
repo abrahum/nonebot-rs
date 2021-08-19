@@ -1,8 +1,13 @@
-mod drivers;
+mod axum;
+mod event;
 mod log;
+mod message;
+
+#[macro_use]
+extern crate lazy_static;
 
 #[tokio::main]
 async fn main() {
     log::init();
-    drivers::axum::run().await;
+    axum::run().await;
 }

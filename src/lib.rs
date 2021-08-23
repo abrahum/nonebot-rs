@@ -5,6 +5,7 @@ mod butin;
 mod config;
 mod event;
 mod log;
+mod matcher;
 mod message;
 mod results;
 
@@ -27,7 +28,7 @@ pub struct Nonebot {
     // pub notice_event_matchers: MatcherMap<event::NoticeEvent>,   // 按照优先级存储 Matcher
     // pub request_event_matchers: MatcherMap<event::RequestEvent>, // 按照优先级存储 Matcher
     // pub meta_event_matchers: MatcherMap<event::MetaEvent>,       // 按照优先级存储 Matcher
-    pub config: config::NbConfig,                                // 全局设置
+    pub config: config::NbConfig, // 全局设置
     pub bots: HashMap<String, Bot>,
 }
 
@@ -83,8 +84,7 @@ impl Nonebot {
         }
     }
 
-    pub fn new(
-        // message_event_matchers: Option<MatcherMap<event::MessageEvent>>,
+    pub fn new(// message_event_matchers: Option<MatcherMap<event::MessageEvent>>,
         // notice_event_matchers: Option<MatcherMap<event::NoticeEvent>>,
         // request_event_matchers: Option<MatcherMap<event::RequestEvent>>,
         // meta_event_matchers: Option<MatcherMap<event::MetaEvent>>,

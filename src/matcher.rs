@@ -1,4 +1,5 @@
-use crate::event::{Events, MessageEvent, MetaEvent, NoticeEvent, RequestEvent};
+use crate::bot::ApiSender;
+use crate::event::{Events, MessageEvent};
 use crate::results::HandlerResult;
 use crate::Nonebot;
 use async_trait::async_trait;
@@ -6,31 +7,27 @@ use std::sync::{Arc, Mutex};
 
 pub type AMNb = Arc<Mutex<Nonebot>>;
 pub type Rule = fn(&Events, AMNb) -> bool;
+pub type MatchersVec<T> = Vec<Box<Matcher<dyn Handler<T>>>>;
 
 #[derive(Clone)]
-pub struct Matcher<T, E>
-where
-    T: Handler<E> + Clone,
-    E: Clone,
-{
+pub struct Matcher<T> {
     // Matcher 匹配器，每个匹配器对应一个 handle 函数
-    rules: Vec<Rule>, // 所有需要被满足的 rule
-    block: bool,      // 是否阻止事件向下一级传递
-    temp: bool,       // 是否为临时 Matcher
-    handler: T,
-    pub disable: bool,          // 禁用当前 Matcher
-    ignore_command_start: bool, // todo
+    pub rules: Vec<Rule>,           // 所有需要被满足的 rule
+    pub block: bool,                // 是否阻止事件向下一级传递
+    pub temp: bool,                 // 是否为临时 Matcher
+    pub handler: T,                 // struct impl Handler trait
+    pub disable: bool,              // 禁用当前 Matcher
+    pub ignore_command_start: bool, // todo
 }
 
 #[async_trait]
 pub trait Handler<E> {
-    async fn handle(self, event: E, amnb: AMNb) -> HandlerResult;
+    async fn handle(self, event: E, amnb: AMNb, sender: ApiSender) -> HandlerResult;
 }
 
-impl<T, E> Matcher<T, E>
+impl<T> Matcher<T>
 where
-    T: Handler<E> + Clone + Send,
-    E: Clone + Send,
+    T: 'static + Handler<MessageEvent>,
 {
     pub fn get_rules(&self) -> &Vec<Rule> {
         // 获取当前 Matcher 所有匹配规格
@@ -86,8 +83,8 @@ where
         None
     }
 
-    // pub async fn match_(self, event: E, nb: AMNb) -> HandlerResult {
-    //     let r = tokio::spawn(self.handler.handle(event, nb.clone()));
-    //     r.await.unwrap()
-    // }
+    pub async fn match_(self, event: MessageEvent, nb: AMNb, sender: ApiSender) -> HandlerResult {
+        let r = tokio::spawn(self.handler.handle(event.clone(), nb.clone(), sender));
+        r.await.unwrap()
+    }
 }

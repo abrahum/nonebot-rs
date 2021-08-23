@@ -1,7 +1,7 @@
 use crate::api::Apis;
-use crate::event::Events;
-// use crate::MatcherMap;
 use crate::butin;
+use crate::event::Events;
+use crate::matcher::MatchersVec;
 use crate::Nonebot;
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::Sender;
@@ -16,7 +16,7 @@ pub struct Bot {
     nickname: Vec<String>,     // nickname
     pub command_start: Vec<String>, // command_start
 
-                               // message_event_matchers: MatcherMap<MessageEvent>, // 按照优先级存储 Matcher
+                               // message_event_matchers:, // 按照优先级存储 Matcher
                                // notice_event_matchers: MatcherMap<NoticeEvent>,   // 按照优先级存储 Matcher
                                // request_event_matchers: MatcherMap<RequestEvent>, // 按照优先级存储 Matcher
                                // meta_event_matchers: MatcherMap<MetaEvent>,       // 按照优先级存储 Matcher
@@ -96,7 +96,11 @@ impl Bot {
             Ok(e) => match e {
                 Events::Message(e) => {
                     butin::logger(e.clone()).await.unwrap();
-                    butin::echo::echo(e.clone(), self.sender.clone())
+                    // butin::echo::echo(e.clone(), self.sender.clone())
+                    //     .await
+                    //     .unwrap();
+                    butin::echo_::builder()
+                        .match_(e.clone(), self.amnb.clone(), self.sender.clone())
                         .await
                         .unwrap();
                 }

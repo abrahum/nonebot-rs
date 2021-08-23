@@ -13,6 +13,8 @@ http = "0.2.4"
 lazy_static = "1.4.0"
 chrono = "0.4.19"
 toml = "0.5.8"
+async-trait = "0.1.51"
+colored = "2.0.0"
 
 [dependencies.serde]
 version = "1.0"
@@ -29,3 +31,7 @@ features = ["ws", "headers"]
 [dependencies.tokio]
 version = "1.10.0"
 features = ["macros", "rt-multi-thread"]
+
+[dependencies.futures-util]
+version = "0.3.14"
+features = ["sink"]

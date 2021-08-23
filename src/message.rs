@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(tag = "type", content = "data")]
 pub enum Message {
     #[serde(rename = "text")]
@@ -45,17 +45,17 @@ pub enum Message {
     Json(JsonMessage),
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct TextMessage {
     pub text: String, // 文本内容
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct FaceMessage {
     pub id: String, // QQ 表情 ID
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ImageMessage {
     pub file: String, // 图片文件名
     #[serde(rename = "type")]
@@ -66,7 +66,7 @@ pub struct ImageMessage {
     pub timeout: Option<i64>, // 网络文件下载超时 单位秒
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct RecordMessage {
     pub file: String,         // 语音文件名
     pub magic: Option<u8>,    // 是否变声 1|0
@@ -76,7 +76,7 @@ pub struct RecordMessage {
     pub timeout: Option<i64>, // 网络文件下载超时 单位秒
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct VideoMessage {
     pub file: String,         // 视频文件名
     pub url: Option<String>,  // 视频 URL
@@ -85,12 +85,12 @@ pub struct VideoMessage {
     pub timeout: Option<i64>, // 网络文件下载超时 单位秒
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct AtMessage {
     pub qq: String, // @QQ ID all 表示全体
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct PokeMessage {
     #[serde(rename = "type")]
     pub type_: String, // 类型
@@ -98,7 +98,7 @@ pub struct PokeMessage {
     pub name: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ShareMessage {
     pub url: String,             // URL
     pub title: String,           // 标题
@@ -106,14 +106,14 @@ pub struct ShareMessage {
     pub image: Option<String>,   // 图片 URl
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ContactMessage {
     #[serde(rename = "type")]
     pub type_: String, // 类型 qq|group
     pub id: String, // QQ号|群号
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct LocationMessage {
     pub lat: String,             // 纬度
     pub lon: String,             // 经度
@@ -121,7 +121,7 @@ pub struct LocationMessage {
     pub content: Option<String>, // 内容描述
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct MusicMessage {
     #[serde(rename = "type")]
     pub type_: String, // 类型 qq|163|xm|custom
@@ -133,17 +133,17 @@ pub struct MusicMessage {
     pub image: Option<String>,   // 图片 URl
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ReplyMessage {
     pub id: String, // 回复的消息 ID
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ForwardMessage {
     pub id: String, // 合并转发 ID
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct NodeMessage {
     pub id: Option<String>,            // 转发的消息 ID
     pub user_id: Option<String>,       // 发送者 QQ 号
@@ -151,12 +151,12 @@ pub struct NodeMessage {
     pub content: Option<Vec<Message>>, // 消息内容
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct XmlMessage {
     pub data: String, // 合并转发 ID
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct JsonMessage {
     pub data: String, // 合并转发 ID
 }

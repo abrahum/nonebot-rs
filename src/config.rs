@@ -5,24 +5,25 @@ static CONFIG_PATH: &str = "Nonebotrs.toml";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NbConfig {
-    global: GlobalConfig,
-    bots: Option<HashMap<String, BotConfig>>,
+    pub global: GlobalConfig,
+    pub bots: Option<HashMap<String, BotConfig>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GlobalConfig {
-    host: std::net::Ipv4Addr,
-    port: u16,
-    debug: bool,
-    superusers: Option<Vec<String>>,
-    command_start: Option<Vec<String>>,
+    pub host: std::net::Ipv4Addr,
+    pub port: u16,
+    pub debug: bool,
+    pub superusers: Option<Vec<String>>,
+    pub nickname: Option<Vec<String>>,
+    pub command_start: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BotConfig {
-    superusers: Option<Vec<String>>,
-    nickname: Option<Vec<String>>,
-    command_start: Option<Vec<String>>,
+    pub superusers: Option<Vec<String>>,
+    pub nickname: Option<Vec<String>>,
+    pub command_start: Option<Vec<String>>,
 }
 
 impl Default for NbConfig {
@@ -30,10 +31,11 @@ impl Default for NbConfig {
         NbConfig {
             global: GlobalConfig {
                 host: std::net::Ipv4Addr::new(127, 0, 0, 1),
-                port: 8080,
+                port: 8088,
                 debug: true,
                 superusers: None,
-                command_start: None,
+                nickname: None,
+                command_start: Some(vec!["/".to_string()]),
             },
             bots: None,
         }
@@ -53,5 +55,17 @@ impl NbConfig {
             config = toml::from_str(&config_string).unwrap();
         }
         config
+    }
+
+    pub fn get_bot_config(&self, bot_id: &str) -> Option<&BotConfig> {
+        if let Some(bots_config) = &self.bots {
+            if let Some(bot_config) = bots_config.get(bot_id) {
+                Some(bot_config)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
 }

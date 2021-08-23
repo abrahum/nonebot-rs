@@ -14,7 +14,7 @@ pub enum Events {
     Meta(MetaEvent), // 元事件
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "message_type")]
 pub enum MessageEvent {
     #[serde(rename = "private")]
@@ -23,19 +23,49 @@ pub enum MessageEvent {
     Group(GroupMessageEvent),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct BaseMessageEvent {
-    pub time: i64,             // Event 时间戳
-    pub self_id: i64,          // 收到事件的机器人 QQ 号
-    pub message_id: i32,       // 消息 ID
-    pub user_id: i64,          // 发送者 ID
-    pub message: Vec<Message>, // Array 消息内容
-    pub raw_message: String,   // 原生消息内容
-    pub font: i32,             // 字体
-    pub sender: BaseSender,    // 发送者消息
+impl MessageEvent {
+    #[allow(dead_code)]
+    pub fn get_raw_message(&self) -> &str {
+        match self {
+            MessageEvent::Private(p) => &p.raw_message,
+            MessageEvent::Group(g) => &g.raw_message,
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn get_self_id(&self) -> String {
+        match self {
+            MessageEvent::Private(p) => p.self_id.to_string(),
+            MessageEvent::Group(g) => g.self_id.to_string(),
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn set_raw_message(&self, new_raw_message: String) -> MessageEvent {
+        match self {
+            MessageEvent::Private(p) => {
+                let mut p = p.clone();
+                p.raw_message = new_raw_message;
+                MessageEvent::Private(p)
+            }
+            MessageEvent::Group(g) => {
+                let mut g = g.clone();
+                g.raw_message = new_raw_message;
+                MessageEvent::Group(g)
+            }
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn get_message(&self) -> &Vec<Message> {
+        match self {
+            MessageEvent::Private(p) => &p.message,
+            MessageEvent::Group(g) => &g.message,
+        }
+    }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PrivateMessageEvent {
     pub time: i64,             // Event 时间戳
     pub self_id: i64,          // 收到事件的机器人 QQ 号
@@ -45,18 +75,18 @@ pub struct PrivateMessageEvent {
     pub message: Vec<Message>, // Array 消息内容
     pub raw_message: String,   // 原生消息内容
     pub font: i32,             // 字体
-    pub sender: BaseSender,    // 发送者消息
+    pub sender: PrivateSender, // 发送者消息
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct BaseSender {
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PrivateSender {
     pub user_id: i64,     // 发送者 QQ 号
     pub nickname: String, // 昵称
     pub sex: String,      // 性别 male|female|unkown
     pub age: i32,         // 年龄
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GroupMessageEvent {
     pub time: i64,                   // Event 时间戳
     pub self_id: i64,                // 收到事件的机器人 QQ 号
@@ -71,7 +101,7 @@ pub struct GroupMessageEvent {
     pub sender: GroupSender,         // 发送者消息
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GroupSender {
     pub user_id: i64,     // 发送者 QQ 号
     pub nickname: String, // 昵称
@@ -84,14 +114,14 @@ pub struct GroupSender {
     pub title: String,    // 专属头衔
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Anoymous {
     pub id: i64,      // 匿名用户 ID
     pub name: String, // 匿名用户名称
     pub flag: String, // 匿名用户 flag
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NoticeEvent {
     pub time: i64,                  // Event 时间戳
     pub self_id: i64,               // 收到事件的机器人 QQ 号
@@ -107,7 +137,7 @@ pub struct NoticeEvent {
     pub honor_type: Option<String>, // 群荣耀类型
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct File {
     pub id: String,   // 文件 ID
     pub name: String, // 文件名
@@ -115,7 +145,7 @@ pub struct File {
     pub busid: i64,   // 用途未知
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RequestEvent {
     pub time: i64,                // Event 时间戳
     pub self_id: i64,             // 收到事件的机器人 QQ 号
@@ -127,7 +157,7 @@ pub struct RequestEvent {
     pub group_id: Option<i64>,    // 群号
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MetaEvent {
     pub time: i64,                // Event 时间戳
     pub self_id: i64,             // 收到事件的机器人 QQ 号
@@ -137,7 +167,7 @@ pub struct MetaEvent {
     pub interval: Option<i64>,    // 下次心跳间隔，单位毫秒
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Status {
     pub online: Option<bool>, // 是否在线，None 表示无法查询
     pub good: bool,           // 运行状态是否符合预期

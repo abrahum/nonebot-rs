@@ -6,7 +6,7 @@ lazy_static! {
     static ref XCR: HeaderName = HeaderName::from_static("x-client-role");
     static ref AUTH: HeaderName = HeaderName::from_static("authorization");
 }
-pub struct XSelfId(pub u64);
+pub struct XSelfId(pub i64);
 
 impl Header for XSelfId {
     fn name() -> &'static HeaderName {
@@ -18,7 +18,7 @@ impl Header for XSelfId {
         I: Iterator<Item = &'i HeaderValue>,
     {
         let value = values.next().ok_or_else(headers::Error::invalid)?;
-        if let Ok(id) = u64::from_str(value.to_str().unwrap()) {
+        if let Ok(id) = i64::from_str(value.to_str().unwrap()) {
             Ok(XSelfId(id))
         } else {
             Err(headers::Error::invalid())

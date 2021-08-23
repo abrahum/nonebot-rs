@@ -14,7 +14,7 @@ pub async fn logger(event: MessageEvent) -> HandlerResult {
                 "Bot {} receive -> {} from {}({})",
                 p.self_id.to_string().red(),
                 p.raw_message,
-                p.sender.nickname,
+                p.sender.nickname.to_string().blue(),
                 p.user_id.to_string().green(),
             )
         }

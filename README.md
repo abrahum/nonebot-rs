@@ -15,6 +15,10 @@
   - [x] logger(tracing-subscriber)
   - [x] echo
 - [ ] 插件式 Matcher 实现
+  - [ ] prematcher
+  - [ ] rules
+  - [x] handler
+  - [ ] aftermather
 - [ ] 模块化分离各组件
 - [ ] 使用 pyo3 搭建 nonebot-rs 版 Python 库（又绕回来了.jpg）
 

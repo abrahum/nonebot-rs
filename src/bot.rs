@@ -1,25 +1,20 @@
 use crate::api::Apis;
 use crate::butin;
 use crate::event::Events;
-use crate::matcher::MatchersVec;
-use crate::Nonebot;
+use crate::{Matchers, Nonebot};
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::Sender;
 
 pub type ApiSender = Sender<Apis>;
 
 pub struct Bot {
-    self_id: String,           // bot ID
-    amnb: Arc<Mutex<Nonebot>>, // Nonebot
-    sender: ApiSender,         // channel sender
-    superusers: Vec<String>,   // Superusers
-    nickname: Vec<String>,     // nickname
+    self_id: String,                // bot ID
+    amnb: Arc<Mutex<Nonebot>>,      // Nonebot
+    sender: ApiSender,              // channel sender
+    superusers: Vec<String>,        // Superusers
+    nickname: Vec<String>,          // nickname
     pub command_start: Vec<String>, // command_start
-
-                               // message_event_matchers:, // 按照优先级存储 Matcher
-                               // notice_event_matchers: MatcherMap<NoticeEvent>,   // 按照优先级存储 Matcher
-                               // request_event_matchers: MatcherMap<RequestEvent>, // 按照优先级存储 Matcher
-                               // meta_event_matchers: MatcherMap<MetaEvent>,       // 按照优先级存储 Matcher
+    matchers: Matchers,
 }
 
 impl Bot {
@@ -58,16 +53,10 @@ impl Bot {
         amnb: Arc<Mutex<Nonebot>>,
     ) -> Self {
         // check authorization here
-        // let message_event_matchers: MatcherMap<MessageEvent>;
-        // let notice_event_matchers: MatcherMap<NoticeEvent>;
-        // let request_event_matchers: MatcherMap<RequestEvent>;
-        // let meta_event_matchers: MatcherMap<MetaEvent>;
+        let mut matchers: Matchers;
         {
-            // let nb = amnb.lock().unwrap();
-            // message_event_matchers = nb.message_event_matchers;
-            // notice_event_matchers = nb.notice_event_matchers;
-            // request_event_matchers = nb.request_event_matchers;
-            // meta_event_matchers = nb.meta_event_matchers;
+            let nb = amnb.lock().unwrap();
+            matchers = nb.matchers.clone();
         }
         let mut bot = Bot {
             self_id: id.to_string(),
@@ -76,10 +65,7 @@ impl Bot {
             superusers: vec![],
             nickname: vec![],
             command_start: vec![],
-            // message_event_matchers: message_event_matchers,
-            // notice_event_matchers: notice_event_matchers,
-            // request_event_matchers: request_event_matchers,
-            // meta_event_matchers: meta_event_matchers,
+            matchers: matchers,
         };
         bot.load_config();
         bot
@@ -90,7 +76,7 @@ impl Bot {
         &self.self_id
     }
 
-    pub async fn handle_event(&mut self, msg: String) {
+    pub async fn handle_event(&self, msg: String) {
         let eventr: serde_json::error::Result<Events> = serde_json::from_str(&msg);
         match eventr {
             Ok(e) => match e {
@@ -99,10 +85,16 @@ impl Bot {
                     // butin::echo::echo(e.clone(), self.sender.clone())
                     //     .await
                     //     .unwrap();
-                    butin::echo_::builder()
-                        .match_(e.clone(), self.amnb.clone(), self.sender.clone())
-                        .await
-                        .unwrap();
+                    // butin::echo_::echo()
+                    //     .match_(e.clone(), self.amnb.clone(), self.sender.clone())
+                    //     .await
+                    //     .unwrap();
+                    for matcher in &self.matchers.message {
+                        matcher
+                            .match_(e.clone(), self.amnb.clone(), self.sender.clone())
+                            .await
+                            .unwrap();
+                    }
                 }
                 Events::Notice(_) => {}
                 Events::Request(_) => {}

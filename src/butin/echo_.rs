@@ -1,18 +1,20 @@
 use crate::api::{Apis, SendPrivateMsg};
 use crate::bot::ApiSender;
 use crate::event::MessageEvent;
-use crate::matcher::{AMNb, Handler, Matcher};
+use crate::matcher::{Handler, Matcher};
 use crate::message::{Message, TextMessage};
 use crate::results::HandlerResult;
 use async_trait::async_trait;
 use colored::*;
+use std::sync::Arc;
 use tracing::{event, Level};
 
+#[derive(Clone)]
 pub struct Echo {}
 
 #[async_trait]
 impl Handler<MessageEvent> for Echo {
-    async fn handle(self, event: MessageEvent, amnb: AMNb, sender: ApiSender) -> HandlerResult {
+    async fn handle(&self, event: MessageEvent, sender: ApiSender) -> HandlerResult {
         match &event {
             MessageEvent::Private(p) => {
                 if p.raw_message.starts_with(r"\echo ") {
@@ -48,12 +50,12 @@ impl Handler<MessageEvent> for Echo {
     }
 }
 
-pub fn builder() -> Matcher<Echo> {
+pub fn echo() -> Matcher<MessageEvent> {
     Matcher {
         rules: vec![],
         block: false,
         temp: false,
-        handler: Echo {},
+        handler: Arc::new(Echo {}),
         disable: false,
         ignore_command_start: true,
     }

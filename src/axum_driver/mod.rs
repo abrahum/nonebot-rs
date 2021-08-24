@@ -64,7 +64,7 @@ pub async fn run(nb_arc: Arc<Mutex<Nonebot>>) {
         .unwrap();
 }
 
-async fn handle_socket(mut bot: Bot, mut socket: WebSocket, mut receiver: mpsc::Receiver<Apis>) {
+async fn handle_socket(bot: Bot, mut socket: WebSocket, mut receiver: mpsc::Receiver<Apis>) {
     loop {
         if let Some(msg) = socket.recv().await {
             if let Ok(msg) = msg {

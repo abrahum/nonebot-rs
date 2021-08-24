@@ -7,27 +7,29 @@ use std::sync::{Arc, Mutex};
 
 pub type AMNb = Arc<Mutex<Nonebot>>;
 pub type Rule = fn(&Events, AMNb) -> bool;
-pub type MatchersVec<T> = Vec<Box<Matcher<dyn Handler<T>>>>;
 
 #[derive(Clone)]
-pub struct Matcher<T> {
+pub struct Matcher<E>
+where
+    E: Clone,
+{
     // Matcher 匹配器，每个匹配器对应一个 handle 函数
-    pub rules: Vec<Rule>,           // 所有需要被满足的 rule
-    pub block: bool,                // 是否阻止事件向下一级传递
-    pub temp: bool,                 // 是否为临时 Matcher
-    pub handler: T,                 // struct impl Handler trait
-    pub disable: bool,              // 禁用当前 Matcher
-    pub ignore_command_start: bool, // todo
+    pub rules: Vec<Rule>,                           // 所有需要被满足的 rule
+    pub block: bool,                                // 是否阻止事件向下一级传递
+    pub temp: bool,                                 // 是否为临时 Matcher
+    pub handler: Arc<dyn Handler<E> + Sync + Send>, // struct impl Handler trait
+    pub disable: bool,                              // 禁用当前 Matcher
+    pub ignore_command_start: bool,                 // todo
 }
 
 #[async_trait]
 pub trait Handler<E> {
-    async fn handle(self, event: E, amnb: AMNb, sender: ApiSender) -> HandlerResult;
+    async fn handle(&self, event: E, sender: ApiSender) -> HandlerResult;
 }
 
-impl<T> Matcher<T>
+impl<E> Matcher<E>
 where
-    T: 'static + Handler<MessageEvent>,
+    E: Clone,
 {
     pub fn get_rules(&self) -> &Vec<Rule> {
         // 获取当前 Matcher 所有匹配规格
@@ -83,8 +85,12 @@ where
         None
     }
 
-    pub async fn match_(self, event: MessageEvent, nb: AMNb, sender: ApiSender) -> HandlerResult {
-        let r = tokio::spawn(self.handler.handle(event.clone(), nb.clone(), sender));
+    pub async fn match_(&self, event: E, nb: AMNb, sender: ApiSender) -> HandlerResult
+    where
+        E: Send + 'static,
+    {
+        let handler = self.handler.clone();
+        let r = tokio::spawn(async move { handler.handle(event, sender).await });
         r.await.unwrap()
     }
 }

@@ -14,11 +14,11 @@
 - [x] But-in Handler
   - [x] logger(tracing-subscriber)
   - [x] echo
-- [ ] 插件式 Matcher 实现
-  - [ ] prematcher
-  - [ ] rules
+- [x] 插件式 Matcher 实现
+  - [x] prematcher
+  - [x] rules
   - [x] handler
-  - [ ] aftermather
+  - [x] aftermatcher
 - [ ] 模块化分离各组件
 - [ ] 使用 pyo3 搭建 nonebot-rs 版 Python 库（又绕回来了.jpg）
 
@@ -29,3 +29,26 @@
 [Nonebot2](https://github.com/nonebot/nonebot2): 可扩展的 Python 异步机器人框架。（本项目的思路来源与模仿对象，妈！）
 
 > 开发者只是一个非专业半吊子编程爱好者，如果发现 Bug || 低效算法 || 脱裤子放屁操作，请不吝指教（务必 Issue）
+
+## 说明
+
+简单说明一下项目运行配置
+
+```toml
+[global]
+host = "127.0.0.1"
+port = 8088
+debug = true
+superuser = ["YourID"]
+nickname = ["nickname"]
+command_start = ["/"]
+
+[bots.BotID]
+superuser = ["YourID"]
+nickname = ["nickname"]
+command_start = ["/"]
+```
+
+global 设置对每个未指定 bot 都有效，当在 global 外特别设置一个 bot 后，所有 global 设置对该 bot 全部失效（包括未指定项）
+
+最小实例请看 bin/minimal.rs ，matcher 等等声明请看 butin 中各项（锐意迭代中）。

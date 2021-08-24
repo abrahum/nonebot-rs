@@ -1,44 +1,41 @@
-use crate::api::{Apis, SendPrivateMsg};
 use crate::bot::ApiSender;
 use crate::event::MessageEvent;
+use crate::matcher::{Handler, Matcher};
 use crate::message::{Message, TextMessage};
 use crate::results::HandlerResult;
-use colored::*;
-use tracing::{event, Level};
+use async_trait::async_trait;
+use std::sync::Arc;
 
-pub async fn echo(event: MessageEvent, sender: ApiSender) -> HandlerResult {
-    match &event {
-        MessageEvent::Private(p) => {
-            if p.raw_message.starts_with(r"\echo ") {
-                let msg_text = p.raw_message.replace(r"\echo ", "");
-                let msg = Message::Text(TextMessage {
-                    text: msg_text.clone(),
-                });
+#[derive(Clone)]
+pub struct Echo {}
 
-                event!(
-                    Level::INFO,
-                    "echo {} to {}({})",
-                    msg_text,
-                    p.sender.nickname.to_string().blue(),
-                    p.user_id.to_string().green(),
-                );
-
-                sender
-                    .send(Apis::SendPrivateMsg {
-                        params: SendPrivateMsg {
-                            user_id: p.user_id,
-                            message: vec![msg],
-                            auto_escape: false,
-                        },
-                        echo: "echo".to_string(),
-                    })
-                    .await
-                    .unwrap();
-                Ok(true)
-            } else {
-                Ok(false)
-            }
+#[async_trait]
+impl Handler<MessageEvent> for Echo {
+    async fn handle(&self, event: MessageEvent, sender: ApiSender) -> HandlerResult {
+        if event.get_raw_message().starts_with(r"echo ") {
+            let msg_text = event.get_raw_message().replace(r"echo ", "");
+            let msg = Message::Text(TextMessage {
+                text: msg_text.clone(),
+            });
+            event.send(sender, vec![msg]).await;
+            Ok(true)
+        } else {
+            Ok(false)
         }
-        MessageEvent::Group(_) => Ok(false),
+    }
+}
+
+pub fn echo() -> Matcher<MessageEvent> {
+    Matcher {
+        pre_matchers: vec![
+            crate::butin::prematcher::to_me(), // 使用构造函数传递
+            Arc::new(crate::butin::prematcher::command_start), // 使用函数名传递
+        ],
+        after_matchers: vec![],
+        rules: vec![],
+        block: false,
+        handler: Arc::new(Echo {}),
+        disable: false,
+        ignore_command_start: true,
     }
 }

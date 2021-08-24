@@ -1,5 +1,7 @@
 use crate::message::Message;
+use colored::*;
 use serde::{Deserialize, Serialize};
+use tracing::{event as tevent, Level};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "post_type")]
@@ -61,6 +63,60 @@ impl MessageEvent {
         match self {
             MessageEvent::Private(p) => &p.message,
             MessageEvent::Group(g) => &g.message,
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn get_sender_nickname(&self) -> &str {
+        match self {
+            MessageEvent::Private(p) => &p.sender.nickname,
+            MessageEvent::Group(g) => &g.sender.nickname,
+        }
+    }
+
+    pub async fn send(&self, sender: crate::bot::ApiSender, msg: Vec<crate::message::Message>) {
+        match self {
+            MessageEvent::Private(p) => {
+                let info = format!("echo {:?} to {}({})", msg, p.sender.nickname, p.user_id,);
+                tevent!(
+                    Level::INFO,
+                    "echo {:?} to {}({})",
+                    msg,
+                    p.sender.nickname.blue(),
+                    p.user_id.to_string().green(),
+                );
+                sender
+                    .send(crate::api::Apis::SendPrivateMsg {
+                        params: crate::api::SendPrivateMsg {
+                            user_id: p.user_id,
+                            message: msg,
+                            auto_escape: false,
+                        },
+                        echo: info,
+                    })
+                    .await
+                    .unwrap();
+            }
+            MessageEvent::Group(g) => {
+                let info = format!("echo {:?} to group ({})", msg, g.group_id,);
+                tevent!(
+                    Level::INFO,
+                    "echo {:?} to group ({})",
+                    msg,
+                    g.group_id.to_string().magenta(),
+                );
+                sender
+                    .send(crate::api::Apis::SendGroupMsg {
+                        params: crate::api::SendGroupMsg {
+                            group_id: g.group_id,
+                            message: msg,
+                            auto_escape: false,
+                        },
+                        echo: info,
+                    })
+                    .await
+                    .unwrap();
+            }
         }
     }
 }

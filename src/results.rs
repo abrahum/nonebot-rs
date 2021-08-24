@@ -7,3 +7,4 @@ pub enum Error {
 }
 
 pub type HandlerResult = SysResult<bool, Error>;
+pub type AfterMatcherResult = SysResult<bool, Error>;

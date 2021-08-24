@@ -1,5 +1,7 @@
+pub mod aftermatcher;
 pub mod echo;
-pub mod echo_;
+pub mod prematcher;
+pub mod rules;
 
 use crate::event::{MessageEvent, MetaEvent};
 // use crate::matcher::AMNb;
@@ -7,7 +9,7 @@ use crate::results::HandlerResult;
 use colored::*;
 use tracing::{event, Level};
 
-pub async fn logger(event: MessageEvent) -> HandlerResult {
+pub async fn logger(event: &MessageEvent) -> HandlerResult {
     match &event {
         MessageEvent::Private(p) => {
             event!(
@@ -42,7 +44,7 @@ pub async fn resp_logger(resp: crate::api::ApiResp) {
     }
 }
 
-pub async fn metahandle(event: MetaEvent) {
+pub async fn metahandle(event: &MetaEvent) {
     if &event.meta_event_type == "heartbeat" {
         event!(Level::TRACE, "Recive HeartBeat")
     }

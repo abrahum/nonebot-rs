@@ -8,6 +8,7 @@ mod log;
 mod matcher;
 mod message;
 mod results;
+mod utils;
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -71,9 +72,10 @@ impl Matchers {
     }
 }
 
+#[derive(Debug)]
 pub struct Bot {
     superusers: Vec<String>,
-    nickname: Vec<String>,
+    pub nickname: Vec<String>,
     command_start: Vec<String>,
     sender: Option<bot::ApiSender>,
 }

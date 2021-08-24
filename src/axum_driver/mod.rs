@@ -41,11 +41,9 @@ pub async fn run(nb_arc: Arc<Mutex<Nonebot>>) {
                 };
                 {
                     let mut nb = nb_arc.lock().unwrap();
-                    if let Some(bot_in_nb) = nb.bots.get_mut(&x_self_id.0.to_string()) {
-                        bot_in_nb.sender = Some(sender.clone());
-                    }
+                    (*nb).add_bot(x_self_id.0, sender.clone()); // 在 nb 建立 bot 状态管理器
                 }
-                let bot = Bot::new(x_self_id.0, auth, sender, nb_arc.clone());
+                let bot = Bot::new(x_self_id.0, auth, sender, nb_arc.clone()).unwrap();
                 event!(
                     Level::INFO,
                     "{} Client {} is connectted. The client type is {}",
@@ -68,7 +66,7 @@ async fn handle_socket(bot: Bot, mut socket: WebSocket, mut receiver: mpsc::Rece
     loop {
         if let Some(msg) = socket.recv().await {
             if let Ok(msg) = msg {
-                bot.handle_event(msg.to_str().unwrap().to_string()).await;
+                bot.handle_recv(msg.to_str().unwrap().to_string()).await;
             }
         }
         if let Some(data) = receiver.recv().await {

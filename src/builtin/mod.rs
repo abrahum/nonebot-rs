@@ -1,5 +1,6 @@
 pub mod aftermatcher;
 pub mod echo;
+pub mod macros;
 pub mod prematcher;
 pub mod rules;
 

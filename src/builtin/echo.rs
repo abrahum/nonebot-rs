@@ -2,6 +2,7 @@ use crate::builtin::prematcher::*;
 use crate::event::MessageEvent;
 use crate::matcher::{Handler, Matcher};
 use crate::message::{Message, TextMessage};
+use crate::on_command;
 use async_trait::async_trait;
 use std::sync::Arc;
 
@@ -10,14 +11,7 @@ pub struct Echo {}
 
 #[async_trait]
 impl Handler<MessageEvent> for Echo {
-    fn match_(&self, event: &mut MessageEvent) -> bool {
-        if event.get_raw_message().starts_with(r"echo ") {
-            event.set_raw_message(event.get_raw_message().replace(r"echo ", "").to_string());
-            true
-        } else {
-            false
-        }
-    }
+    on_command!(MessageEvent, "echo");
 
     async fn handle(&self, event: MessageEvent, matcher: Matcher<MessageEvent>) {
         let msg = Message::Text(TextMessage {

@@ -6,7 +6,11 @@
 
 ## To-Do List
 
-- [x] 基本的 WebSocket，接收发送（使用 axum 实现）
+- [ ] onebot 通讯方式
+  - [ ] HTTP
+  - [ ] HTTP POST
+  - [ ] 正向 WS
+  - [x] 反向 WS （使用 axum 实现）
 - [ ] Onebot 标准接口实现（使用 serde 实现）
   - [x] Event
   - [x] Message

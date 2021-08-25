@@ -11,9 +11,9 @@ pub type ApiSender = Sender<Apis>;
 pub struct Bot {
     self_id: String, // bot ID
     // amnb: Arc<Mutex<Nonebot>>, // Nonebot
-    sender: ApiSender, // channel sender
-    matchers: Matchers,
-    config: BotConfig,
+    sender: ApiSender,  // channel sender
+    matchers: Matchers, // Bot Matchers
+    config: BotConfig,  // Bot config
 }
 
 impl Bot {
@@ -64,6 +64,7 @@ impl Bot {
     }
 
     pub async fn handle_recv(&self, msg: String) {
+        // 处理接收到所有消息，分流上报 Event 和 Api 调用回执
         let data: serde_json::error::Result<Events> = serde_json::from_str(&msg);
         match data {
             Ok(events) => self.handle_events(events).await,
@@ -76,6 +77,7 @@ impl Bot {
     }
 
     async fn handle_events(&self, events: Events) {
+        // 处理上报 Event 分流不同 Event 类型
         match events {
             Events::Message(e) => {
                 builtin::logger(&e).await.unwrap();
@@ -93,6 +95,7 @@ impl Bot {
     }
 
     async fn handle_resp(&self, resp: String) {
+        // 处理 Api 调用回执
         let resp: crate::api::ApiResp = serde_json::from_str(&resp).unwrap();
         builtin::resp_logger(resp).await;
     }
@@ -101,6 +104,7 @@ impl Bot {
     where
         E: Clone + Send + 'static,
     {
+        // 根据不同 Event 类型，逐级匹配，判定是否 Block
         for (_, matcherh) in matcherb {
             if self.handler_event_(matcherh, e.clone()).await {
                 break;
@@ -112,6 +116,7 @@ impl Bot {
     where
         E: Clone + Send + 'static,
     {
+        // 每级 Matcher 匹配，返回是否 block
         let mut get_block = false;
         for (_, matcher) in matcherh {
             let matched = matcher.match_(e.clone(), self.config.clone()).await;
@@ -123,7 +128,7 @@ impl Bot {
     }
 
     fn check_auth(auth: Option<String>, amnb: Arc<Mutex<Nonebot>>) -> Result<bool, String> {
-        //todo
+        // todo 鉴权
         Ok(true)
     }
 }

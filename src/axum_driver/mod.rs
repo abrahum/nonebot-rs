@@ -6,6 +6,7 @@ use axum::{
     prelude::*,
     ws::{ws, WebSocket},
 };
+use colored::*;
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 use tracing::{event, Level};
@@ -47,9 +48,9 @@ pub async fn run(nb_arc: Arc<Mutex<Nonebot>>) {
                 event!(
                     Level::INFO,
                     "{} Client {} is connectted. The client type is {}",
-                    user_agent,
-                    x_self_id.0,
-                    x_client_role.0
+                    user_agent.to_string().bright_yellow(),
+                    x_self_id.0.to_string().red(),
+                    x_client_role.0.bright_cyan()
                 );
                 handle_socket(bot, socket, receiver).await;
             }

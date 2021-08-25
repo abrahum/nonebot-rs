@@ -10,20 +10,21 @@ mod message;
 mod results;
 mod utils;
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex};
 
 #[macro_use]
 extern crate lazy_static;
 
-pub type MatchersVec<E> = Vec<matcher::Matcher<E>>;
+pub type MatchersBTreeMap<E> = BTreeMap<i8, MatchersHashMap<E>>;
+pub type MatchersHashMap<E> = HashMap<String, matcher::Matcher<E>>;
 
 #[derive(Clone)]
 pub struct Matchers {
-    message: MatchersVec<event::MessageEvent>,
-    notice: MatchersVec<event::NoticeEvent>,
-    request: MatchersVec<event::RequestEvent>,
-    meta: MatchersVec<event::MetaEvent>,
+    message: MatchersBTreeMap<event::MessageEvent>,
+    notice: MatchersBTreeMap<event::NoticeEvent>,
+    request: MatchersBTreeMap<event::RequestEvent>,
+    meta: MatchersBTreeMap<event::MetaEvent>,
 }
 
 fn unoption<T>(input: &Option<Vec<T>>) -> Vec<T>
@@ -36,39 +37,70 @@ where
     }
 }
 
-fn singleclone<E>(input: &MatchersVec<E>) -> MatchersVec<E>
+fn unoptionb<K, D>(input: &Option<BTreeMap<K, D>>) -> BTreeMap<K, D>
 where
-    E: Clone,
+    K: Clone + std::cmp::Ord,
+    D: Clone,
 {
-    let mut rvec = vec![];
-    for handler in input {
-        rvec.push(handler.clone());
+    match input {
+        Some(t) => t.clone(),
+        None => BTreeMap::new(),
     }
-    rvec
 }
 
 impl Matchers {
     pub fn new(
-        message: Option<MatchersVec<event::MessageEvent>>,
-        notice: Option<MatchersVec<event::NoticeEvent>>,
-        request: Option<MatchersVec<event::RequestEvent>>,
-        meta: Option<MatchersVec<event::MetaEvent>>,
+        message: Option<MatchersBTreeMap<event::MessageEvent>>,
+        notice: Option<MatchersBTreeMap<event::NoticeEvent>>,
+        request: Option<MatchersBTreeMap<event::RequestEvent>>,
+        meta: Option<MatchersBTreeMap<event::MetaEvent>>,
     ) -> Matchers {
         Matchers {
-            message: unoption(&message),
-            notice: unoption(&notice),
-            request: unoption(&request),
-            meta: unoption(&meta),
+            message: unoptionb(&message),
+            notice: unoptionb(&notice),
+            request: unoptionb(&request),
+            meta: unoptionb(&meta),
         }
     }
 
-    pub fn clone(&self) -> Matchers {
-        Matchers {
-            message: singleclone(&self.message),
-            notice: singleclone(&self.notice),
-            request: singleclone(&self.request),
-            meta: singleclone(&self.meta),
+    pub fn add_message_matcher(
+        &mut self,
+        matcher: matcher::Matcher<event::MessageEvent>,
+    ) -> Matchers {
+        match self.message.get(&matcher.priority) {
+            Some(_) => {
+                self.message
+                    .get_mut(&matcher.priority)
+                    .unwrap()
+                    .insert(matcher.name.clone(), matcher)
+                    .unwrap();
+            }
+            None => {
+                let mut hashmap: MatchersHashMap<event::MessageEvent> = HashMap::new();
+                hashmap.insert(matcher.name.clone(), matcher.clone());
+                self.message.insert(matcher.priority, hashmap);
+            }
         }
+        self.clone()
+    }
+
+    fn set_sender_<E>(matcherb: &mut MatchersBTreeMap<E>, sender: bot::ApiSender)
+    where
+        E: Clone,
+    {
+        for (_, matcherh) in matcherb.iter_mut() {
+            for (_, matcher) in matcherh.iter_mut() {
+                matcher.set_sender(sender.clone());
+            }
+        }
+    }
+
+    pub fn set_sender(&mut self, sender: bot::ApiSender) -> Matchers {
+        Matchers::set_sender_(&mut self.message, sender.clone());
+        Matchers::set_sender_(&mut self.notice, sender.clone());
+        Matchers::set_sender_(&mut self.request, sender.clone());
+        Matchers::set_sender_(&mut self.meta, sender.clone());
+        self.clone()
     }
 }
 
@@ -123,12 +155,12 @@ impl Nonebot {
         }
     }
 
-    pub fn new(matchers: Matchers) -> Self {
+    pub fn new() -> Self {
         let config = config::NbConfig::load();
         Nonebot {
             bots: Nonebot::build_bots(&config),
             config: config::NbConfig::load(),
-            matchers: matchers,
+            matchers: Matchers::new(None, None, None, None),
         }
     }
 }

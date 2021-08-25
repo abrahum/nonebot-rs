@@ -22,11 +22,12 @@ impl Bot {
         amnb: Arc<Mutex<Nonebot>>,
     ) -> Result<Self, String> {
         Bot::check_auth(authorization, amnb.clone())?;
-        let matchers: Matchers;
+        let mut matchers: Matchers;
         {
             let nb = amnb.lock().unwrap();
             matchers = nb.matchers.clone();
         }
+        matchers.set_sender(sender.clone());
         let bot = Bot {
             self_id: id.to_string(),
             amnb: amnb,
@@ -75,16 +76,29 @@ impl Bot {
         butin::resp_logger(resp).await;
     }
 
-    async fn handle_event<E>(&self, matchers: &crate::MatchersVec<E>, e: E)
+    async fn handle_event<E>(&self, matcherb: &crate::MatchersBTreeMap<E>, e: E)
     where
         E: Clone + Send + 'static,
     {
-        for matcher in matchers {
-            matcher
-                .match_(e.clone(), self.amnb.clone(), self.sender.clone())
-                .await
-                .unwrap();
+        for (_, matcherh) in matcherb {
+            if self.handler_event_(matcherh, e.clone()).await {
+                break;
+            };
         }
+    }
+
+    async fn handler_event_<E>(&self, matcherh: &crate::MatchersHashMap<E>, e: E) -> bool
+    where
+        E: Clone + Send + 'static,
+    {
+        let mut get_block = false;
+        for (_, matcher) in matcherh {
+            let matched = matcher.match_(e.clone(), self.amnb.clone()).await;
+            if matched && matcher.is_block() {
+                get_block = true;
+            }
+        }
+        get_block
     }
 
     fn check_auth(auth: Option<String>, amnb: Arc<Mutex<Nonebot>>) -> Result<bool, String> {

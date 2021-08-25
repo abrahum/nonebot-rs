@@ -4,7 +4,6 @@ pub mod prematcher;
 pub mod rules;
 
 use crate::event::{MessageEvent, MetaEvent};
-// use crate::matcher::AMNb;
 use crate::results::HandlerResult;
 use colored::*;
 use tracing::{event, Level};

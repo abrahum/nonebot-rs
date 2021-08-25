@@ -1,5 +1,6 @@
 use crate::api::Apis;
-use crate::butin;
+use crate::builtin;
+use crate::config::BotConfig;
 use crate::event::Events;
 use crate::{Matchers, Nonebot};
 use std::sync::{Arc, Mutex};
@@ -8,10 +9,11 @@ use tokio::sync::mpsc::Sender;
 pub type ApiSender = Sender<Apis>;
 
 pub struct Bot {
-    self_id: String,           // bot ID
-    amnb: Arc<Mutex<Nonebot>>, // Nonebot
-    sender: ApiSender,         // channel sender
+    self_id: String, // bot ID
+    // amnb: Arc<Mutex<Nonebot>>, // Nonebot
+    sender: ApiSender, // channel sender
     matchers: Matchers,
+    config: BotConfig,
 }
 
 impl Bot {
@@ -23,16 +25,35 @@ impl Bot {
     ) -> Result<Self, String> {
         Bot::check_auth(authorization, amnb.clone())?;
         let mut matchers: Matchers;
+        let config: BotConfig;
         {
             let nb = amnb.lock().unwrap();
             matchers = nb.matchers.clone();
+            if let Some(bots_config) = &nb.config.bots {
+                if let Some(bot_config) = bots_config.get(&id.to_string()) {
+                    config = bot_config.clone();
+                } else {
+                    config = BotConfig {
+                        superusers: nb.config.global.superusers.clone(),
+                        nickname: nb.config.global.nickname.clone(),
+                        command_start: nb.config.global.command_start.clone(),
+                    }
+                }
+            } else {
+                config = BotConfig {
+                    superusers: nb.config.global.superusers.clone(),
+                    nickname: nb.config.global.nickname.clone(),
+                    command_start: nb.config.global.command_start.clone(),
+                }
+            }
         }
         matchers.set_sender(sender.clone());
         let bot = Bot {
             self_id: id.to_string(),
-            amnb: amnb,
+            // amnb: amnb,
             sender: sender,
             matchers: matchers,
+            config: config,
         };
         Ok(bot)
     }
@@ -57,7 +78,7 @@ impl Bot {
     async fn handle_events(&self, events: Events) {
         match events {
             Events::Message(e) => {
-                butin::logger(&e).await.unwrap();
+                builtin::logger(&e).await.unwrap();
                 self.handle_event(&self.matchers.message, e).await;
             }
             Events::Notice(e) => {
@@ -65,7 +86,7 @@ impl Bot {
             }
             Events::Request(e) => self.handle_event(&self.matchers.request, e).await,
             Events::Meta(e) => {
-                butin::metahandle(&e).await;
+                builtin::metahandle(&e).await;
                 self.handle_event(&self.matchers.meta, e).await;
             }
         }
@@ -73,7 +94,7 @@ impl Bot {
 
     async fn handle_resp(&self, resp: String) {
         let resp: crate::api::ApiResp = serde_json::from_str(&resp).unwrap();
-        butin::resp_logger(resp).await;
+        builtin::resp_logger(resp).await;
     }
 
     async fn handle_event<E>(&self, matcherb: &crate::MatchersBTreeMap<E>, e: E)
@@ -93,7 +114,7 @@ impl Bot {
     {
         let mut get_block = false;
         for (_, matcher) in matcherh {
-            let matched = matcher.match_(e.clone(), self.amnb.clone()).await;
+            let matched = matcher.match_(e.clone(), self.config.clone()).await;
             if matched && matcher.is_block() {
                 get_block = true;
             }

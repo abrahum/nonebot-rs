@@ -1,16 +1,15 @@
 use crate::bot::ApiSender;
-use crate::event::{Events, MessageEvent};
+use crate::config::BotConfig;
+use crate::event::MessageEvent;
 use crate::results::AfterMatcherResult;
-use crate::Nonebot;
 use async_trait::async_trait;
 use colored::*;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use tracing::{event as tevent, Level};
 
-pub type AMNb = Arc<Mutex<Nonebot>>;
-pub type Rule<E> = fn(&E, AMNb) -> bool;
-pub type PreMatcher<E> = fn(&E, AMNb) -> Option<E>;
-pub type AfterMatcher = fn(&Events, AMNb) -> AfterMatcherResult;
+pub type Rule<E> = fn(&E, &BotConfig) -> bool;
+pub type PreMatcher<E> = fn(&mut E, BotConfig) -> bool;
+pub type AfterMatcher<E> = fn(&mut E, BotConfig) -> AfterMatcherResult;
 
 #[derive(Clone)]
 pub struct Matcher<E>
@@ -22,7 +21,7 @@ where
     sender: Option<ApiSender>,                  // 发送器
     pub priority: i8,                           // 匹配优先级
     pre_matchers: Vec<Arc<PreMatcher<E>>>,      // 可以改变 event 的前处理器
-    after_matchers: Vec<Arc<AfterMatcher>>,     // todo 还没想好干啥的后处理器
+    after_matchers: Vec<Arc<AfterMatcher<E>>>,  // todo 还没想好干啥的后处理器
     rules: Vec<Arc<Rule<E>>>,                   // 所有需要被满足的 rule
     block: bool,                                // 是否阻止事件向下一级传递
     handler: Arc<dyn Handler<E> + Sync + Send>, // struct impl Handler trait
@@ -72,7 +71,7 @@ where
         self.clone()
     }
 
-    pub fn add_after_matcher(&mut self, after_matcher: Arc<AfterMatcher>) -> Matcher<E> {
+    pub fn add_after_matcher(&mut self, after_matcher: Arc<AfterMatcher<E>>) -> Matcher<E> {
         self.after_matchers.push(after_matcher);
         self.clone()
     }
@@ -111,46 +110,44 @@ where
         self.block
     }
 
-    pub fn prematcher_handle(&self, event: E, amnb: AMNb) -> Option<E> {
-        let mut revent = event.clone();
+    pub fn prematcher_handle(&self, event: &mut E, config: BotConfig) -> bool {
         for premather in &self.pre_matchers {
-            match premather(&revent, amnb.clone()) {
-                Some(e) => revent = e,
-                None => return None,
-            }
-        }
-        Some(revent)
-    }
-
-    fn check_rules(&self, event: &E, nb: AMNb) -> bool {
-        // 一次性检查当前事件是否满足所有 Rule
-        // check the event fit all the rules or not
-        for rule in &self.rules {
-            if !rule(event, nb.clone()) {
+            if !premather(event, config.clone()) {
                 return false;
             }
         }
         true
     }
 
-    pub async fn match_(&self, event: E, nb: AMNb) -> bool
+    fn check_rules(&self, event: &E, config: &BotConfig) -> bool {
+        // 一次性检查当前事件是否满足所有 Rule
+        // check the event fit all the rules or not
+        for rule in &self.rules {
+            if !rule(event, config) {
+                return false;
+            }
+        }
+        true
+    }
+
+    pub async fn match_(&self, event: E, config: BotConfig) -> bool
     where
         E: Send + 'static,
     {
-        if let Some(mut e) = self.prematcher_handle(event, nb.clone()) {
-            if !self.check_rules(&e, nb.clone()) {
-                return false;
-            }
-            let handler = self.handler.clone();
-            if !handler.match_(&mut e) {
-                return false;
-            }
-            let matcher = self.clone().set_event(&e);
-            tokio::spawn(async move { handler.handle(e, matcher).await });
-            return true;
-        } else {
-            false
+        let mut event = event.clone();
+        if !self.prematcher_handle(&mut event, config.clone()) {
+            return false;
         }
+        if !self.check_rules(&event, &config) {
+            return false;
+        }
+        let handler = self.handler.clone();
+        if !handler.match_(&mut event) {
+            return false;
+        }
+        let matcher = self.clone().set_event(&event);
+        tokio::spawn(async move { handler.handle(event, matcher).await });
+        return true;
     }
 }
 impl Matcher<MessageEvent> {

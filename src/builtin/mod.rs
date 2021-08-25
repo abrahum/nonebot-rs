@@ -37,7 +37,7 @@ pub async fn logger(event: &MessageEvent) -> HandlerResult {
 
 pub async fn resp_logger(resp: crate::api::ApiResp) {
     if &resp.status == "ok" {
-        event!(Level::TRACE, "{} success", resp.echo);
+        event!(Level::DEBUG, "{} success", resp.echo);
     } else {
         event!(Level::INFO, "{} failed", resp.echo);
     }

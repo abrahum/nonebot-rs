@@ -41,17 +41,15 @@ impl MessageEvent {
     }
 
     #[allow(dead_code)]
-    pub fn set_raw_message(&self, new_raw_message: String) -> MessageEvent {
+    pub fn set_raw_message(&mut self, new_raw_message: String) -> MessageEvent {
         match self {
             MessageEvent::Private(p) => {
-                let mut p = p.clone();
                 p.raw_message = new_raw_message;
-                MessageEvent::Private(p)
+                MessageEvent::Private(p.clone())
             }
             MessageEvent::Group(g) => {
-                let mut g = g.clone();
                 g.raw_message = new_raw_message;
-                MessageEvent::Group(g)
+                MessageEvent::Group(g.clone())
             }
         }
     }
@@ -179,4 +177,29 @@ pub struct MetaEvent {
 pub struct Status {
     pub online: Option<bool>, // 是否在线，None 表示无法查询
     pub good: bool,           // 运行状态是否符合预期
+}
+
+pub trait UserId {
+    fn ger_user_id(&self) -> String;
+}
+
+impl UserId for MessageEvent {
+    fn ger_user_id(&self) -> String {
+        match self {
+            MessageEvent::Private(p) => p.user_id.to_string(),
+            MessageEvent::Group(g) => g.user_id.to_string(),
+        }
+    }
+}
+
+impl UserId for NoticeEvent {
+    fn ger_user_id(&self) -> String {
+        self.user_id.to_string()
+    }
+}
+
+impl UserId for RequestEvent {
+    fn ger_user_id(&self) -> String {
+        self.user_id.to_string()
+    }
 }

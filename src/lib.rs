@@ -1,7 +1,7 @@
 mod api;
 mod axum_driver;
 mod bot;
-pub mod butin;
+pub mod builtin;
 mod config;
 mod event;
 mod log;
@@ -25,16 +25,6 @@ pub struct Matchers {
     notice: MatchersBTreeMap<event::NoticeEvent>,
     request: MatchersBTreeMap<event::RequestEvent>,
     meta: MatchersBTreeMap<event::MetaEvent>,
-}
-
-fn unoption<T>(input: &Option<Vec<T>>) -> Vec<T>
-where
-    T: Clone,
-{
-    match input {
-        Some(t) => t.clone(),
-        None => vec![],
-    }
 }
 
 fn unoptionb<K, D>(input: &Option<BTreeMap<K, D>>) -> BTreeMap<K, D>
@@ -106,10 +96,10 @@ impl Matchers {
 
 #[derive(Debug)]
 pub struct Bot {
-    superusers: Vec<String>,
+    pub superusers: Vec<String>,
     pub nickname: Vec<String>,
-    command_start: Vec<String>,
-    sender: Option<bot::ApiSender>,
+    pub command_start: Vec<String>,
+    pub sender: Option<bot::ApiSender>,
 }
 
 pub struct Nonebot {
@@ -128,9 +118,9 @@ impl Nonebot {
                     bot_id.clone(),
                     Bot {
                         sender: None,
-                        superusers: unoption(&bot_config.superusers),
-                        nickname: unoption(&bot_config.nickname),
-                        command_start: unoption(&bot_config.command_start),
+                        superusers: bot_config.superusers.clone(),
+                        nickname: bot_config.nickname.clone(),
+                        command_start: bot_config.command_start.clone(),
                     },
                 );
             }
@@ -147,9 +137,9 @@ impl Nonebot {
                 bot_id,
                 Bot {
                     sender: Some(sender),
-                    superusers: unoption(&self.config.global.superusers),
-                    nickname: unoption(&self.config.global.nickname),
-                    command_start: unoption(&self.config.global.command_start),
+                    superusers: self.config.global.superusers.clone(),
+                    nickname: self.config.global.nickname.clone(),
+                    command_start: self.config.global.command_start.clone(),
                 },
             );
         }

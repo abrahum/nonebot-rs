@@ -14,16 +14,16 @@ pub struct GlobalConfig {
     pub host: std::net::Ipv4Addr,
     pub port: u16,
     pub debug: bool,
-    pub superusers: Option<Vec<String>>,
-    pub nickname: Option<Vec<String>>,
-    pub command_start: Option<Vec<String>>,
+    pub superusers: Vec<String>,
+    pub nickname: Vec<String>,
+    pub command_start: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BotConfig {
-    pub superusers: Option<Vec<String>>,
-    pub nickname: Option<Vec<String>>,
-    pub command_start: Option<Vec<String>>,
+    pub superusers: Vec<String>,
+    pub nickname: Vec<String>,
+    pub command_start: Vec<String>,
 }
 
 impl Default for NbConfig {
@@ -33,9 +33,9 @@ impl Default for NbConfig {
                 host: std::net::Ipv4Addr::new(127, 0, 0, 1),
                 port: 8088,
                 debug: true,
-                superusers: None,
-                nickname: None,
-                command_start: Some(vec!["/".to_string()]),
+                superusers: vec![],
+                nickname: vec![],
+                command_start: vec!["/".to_string()],
             },
             bots: None,
         }

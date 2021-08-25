@@ -14,11 +14,20 @@
 - [x] But-in Handler
   - [x] logger(tracing-subscriber)
   - [x] echo
+- [ ] Nbconfig
+  - [x] 基本设置
+  - [x] bot 设置
+  - [ ] Matcher 设置
+  - [ ] 定时任务设置
 - [x] 插件式 Matcher 实现
   - [x] prematcher
   - [x] rules
   - [x] handler
   - [x] aftermatcher
+  - [ ] Matcher Api
+  - [ ] 临时 Matcher 实现对话
+- [ ] 定时任务插件
+- [ ] 实现属性宏声明插件，便于二次开发
 - [ ] 模块化分离各组件
 - [ ] 使用 pyo3 搭建 nonebot-rs 版 Python 库（又绕回来了.jpg）
 
@@ -49,6 +58,6 @@ nickname = ["nickname"]
 command_start = ["/"]
 ```
 
-global 设置对每个未指定 bot 都有效，当在 global 外特别设置一个 bot 后，所有 global 设置对该 bot 全部失效（包括未指定项）
+global 设置对每个未指定 bot 都有效，当在 global 外特别设置一个 bot 后，所有 global 设置对该 bot 全部失效（包括未指定项，当然应该也会报错）
 
-最小实例请看 bin/minimal.rs ，matcher 等等声明请看 butin 中各项（锐意迭代中）。
+最小实例请看 bin/minimal.rs ，matcher 等等声明请看 builtin 中各项（锐意迭代中）。

@@ -12,9 +12,14 @@ use tracing::{event, Level};
 pub async fn logger(event: &MessageEvent) -> HandlerResult {
     match &event {
         MessageEvent::Private(p) => {
+            let mut user_id = p.user_id.to_string();
+            while user_id.len() < 10 {
+                user_id.insert(0, ' ');
+            }
             event!(
                 Level::INFO,
-                "Bot {} receive -> {} from {}({})",
+                "{} [{}] -> {} from {}({})",
+                user_id.green(),
                 p.self_id.to_string().red(),
                 p.raw_message,
                 p.sender.nickname.to_string().blue(),
@@ -22,11 +27,15 @@ pub async fn logger(event: &MessageEvent) -> HandlerResult {
             )
         }
         MessageEvent::Group(g) => {
+            let mut group_id = g.group_id.to_string();
+            while group_id.len() < 10 {
+                group_id.insert(0, ' ');
+            }
             event!(
                 Level::INFO,
-                "Bot {} receive in group {} -> {} from {}({})",
+                "{} [{}] -> {} from {}({})",
+                group_id.magenta(),
                 g.self_id.to_string().red(),
-                g.group_id.to_string().magenta(),
                 g.raw_message,
                 g.sender.nickname.to_string().blue(),
                 g.user_id.to_string().green(),

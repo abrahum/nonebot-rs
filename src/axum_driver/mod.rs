@@ -7,6 +7,7 @@ use axum::{
     ws::{ws, WebSocket},
 };
 use colored::*;
+use futures_util::{SinkExt, StreamExt};
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 use tracing::{event, Level};
@@ -34,7 +35,7 @@ pub async fn run(nb_arc: Arc<Mutex<Nonebot>>) {
                 Some(TypedHeader(x_client_role)),
             ) = (user_agent, x_self_id, x_client_role)
             {
-                let (sender, receiver) = mpsc::channel(1);
+                let (sender, receiver) = mpsc::channel(32);
                 let auth = if let Some(TypedHeader(auth)) = authorization {
                     Some(auth.0)
                 } else {
@@ -63,22 +64,43 @@ pub async fn run(nb_arc: Arc<Mutex<Nonebot>>) {
         .unwrap();
 }
 
-async fn handle_socket(bot: Bot, mut socket: WebSocket, mut receiver: mpsc::Receiver<Apis>) {
-    loop {
-        if let Some(msg) = socket.recv().await {
-            if let Ok(msg) = msg {
-                bot.handle_recv(msg.to_str().unwrap().to_string()).await;
-            }
+async fn stream_recv(
+    stream: futures_util::stream::SplitStream<axum::ws::WebSocket>,
+    bot: Bot,
+) -> (futures_util::stream::SplitStream<axum::ws::WebSocket>, Bot) {
+    let (msg, next_stream) = stream.into_future().await;
+    if let Some(msg) = msg {
+        if let Ok(msg) = msg {
+            bot.handle_recv(msg.to_str().unwrap().to_string()).await;
         }
-        if let Some(data) = receiver.recv().await {
+    }
+    (next_stream, bot)
+}
+
+async fn handle_socket(mut bot: Bot, socket: WebSocket, mut receiver: mpsc::Receiver<Apis>) {
+    // 将 websocket 接收流与发送流分离
+    let (mut sink, mut stream) = socket.split();
+    // 接收消息
+    let income = async move {
+        loop {
+            let rdata = stream_recv(stream, bot).await;
+            stream = rdata.0;
+            bot = rdata.1;
+        }
+    };
+    // 发送消息
+    let outcome = async move {
+        while let Some(data) = receiver.recv().await {
+            println!("{:#?}", data);
             if let crate::api::Apis::None = data {
             } else {
                 let json_string = serde_json::to_string(&data).unwrap();
-                socket
-                    .send(axum::ws::Message::text(json_string))
+                sink.send(axum::ws::Message::text(json_string))
                     .await
                     .unwrap();
             }
         }
-    }
+    };
+    tokio::spawn(income);
+    tokio::spawn(outcome);
 }

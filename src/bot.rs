@@ -2,9 +2,11 @@ use crate::api::Apis;
 use crate::builtin;
 use crate::config::BotConfig;
 use crate::event::Events;
+use crate::log::log_load_matchers;
 use crate::{Matchers, Nonebot};
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::Sender;
+use tracing::{event, Level};
 
 pub type ApiSender = Sender<Apis>;
 
@@ -55,6 +57,7 @@ impl Bot {
             matchers: matchers,
             config: config,
         };
+        log_load_matchers(&bot.matchers);
         Ok(bot)
     }
 
@@ -70,13 +73,14 @@ impl Bot {
             Ok(events) => self.handle_events(events).await,
             Err(_) => self.handle_resp(msg).await,
         }
-        match self.sender.try_send(crate::api::Apis::None) {
-            Ok(_) => {}
-            Err(_) => {}
-        };
+        // match self.sender.try_send(crate::api::Apis::None) {
+        //     Ok(_) => {}
+        //     Err(_) => {}
+        // };
     }
 
     async fn handle_events(&self, events: Events) {
+        event!(Level::TRACE, "handling events {:?}", events);
         // 处理上报 Event 分流不同 Event 类型
         match events {
             Events::Message(e) => {
@@ -95,6 +99,7 @@ impl Bot {
     }
 
     async fn handle_resp(&self, resp: String) {
+        event!(Level::TRACE, "handling resp {}", resp);
         // 处理 Api 调用回执
         let resp: crate::api::ApiResp = serde_json::from_str(&resp).unwrap();
         builtin::resp_logger(resp).await;
@@ -102,8 +107,9 @@ impl Bot {
 
     async fn handle_event<E>(&self, matcherb: &crate::MatchersBTreeMap<E>, e: E)
     where
-        E: Clone + Send + 'static,
+        E: Clone + Send + 'static + std::fmt::Debug,
     {
+        event!(Level::TRACE, "handling event {:?}", e);
         // 根据不同 Event 类型，逐级匹配，判定是否 Block
         for (_, matcherh) in matcherb {
             if self.handler_event_(matcherh, e.clone()).await {
@@ -114,8 +120,9 @@ impl Bot {
 
     async fn handler_event_<E>(&self, matcherh: &crate::MatchersHashMap<E>, e: E) -> bool
     where
-        E: Clone + Send + 'static,
+        E: Clone + Send + 'static + std::fmt::Debug,
     {
+        event!(Level::TRACE, "handling event_ {:?}", e);
         // 每级 Matcher 匹配，返回是否 block
         let mut get_block = false;
         for (_, matcher) in matcherh {

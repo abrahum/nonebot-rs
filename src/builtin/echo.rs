@@ -12,7 +12,6 @@ pub struct Echo {}
 #[async_trait]
 impl Handler<MessageEvent> for Echo {
     on_command!(MessageEvent, "echo");
-
     async fn handle(&self, event: MessageEvent, matcher: Matcher<MessageEvent>) {
         let msg = Message::Text(TextMessage {
             text: event.get_raw_message().to_string(),

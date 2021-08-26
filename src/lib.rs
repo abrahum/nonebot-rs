@@ -157,8 +157,8 @@ impl Nonebot {
 
 impl Nonebot {
     pub fn run(self) {
-        log::init(self.config.global.debug);
-        let rt = tokio::runtime::Builder::new_current_thread()
+        log::init(self.config.global.debug, self.config.global.trace);
+        let rt = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
             .build()
             .unwrap();

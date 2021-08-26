@@ -1,5 +1,4 @@
-use crate::api::Apis;
-use crate::bot::Bot;
+use crate::bot::{Bot, ChannelItem, Setter};
 use crate::Nonebot;
 use axum::{
     extract::TypedHeader,
@@ -9,7 +8,7 @@ use axum::{
 use colored::*;
 use futures_util::{SinkExt, StreamExt};
 use std::sync::{Arc, Mutex};
-use tokio::sync::mpsc;
+use tokio::sync::{broadcast, mpsc};
 use tracing::{event, Level};
 
 mod xheaders;
@@ -22,6 +21,7 @@ pub async fn run(nb_arc: Arc<Mutex<Nonebot>>) {
         host = nb.config.global.host;
         port = nb.config.global.port;
     }
+    let (broadcaster, _) = broadcast::channel::<Setter>(32);
     let handle_socket =
         |socket: WebSocket,
          x_self_id: Option<TypedHeader<xheaders::XSelfId>>,
@@ -36,6 +36,7 @@ pub async fn run(nb_arc: Arc<Mutex<Nonebot>>) {
             ) = (user_agent, x_self_id, x_client_role)
             {
                 let (sender, receiver) = mpsc::channel(32);
+                let broadcaster = broadcaster.clone();
                 let auth = if let Some(TypedHeader(auth)) = authorization {
                     Some(auth.0)
                 } else {
@@ -45,7 +46,14 @@ pub async fn run(nb_arc: Arc<Mutex<Nonebot>>) {
                     let mut nb = nb_arc.lock().unwrap();
                     (*nb).add_bot(x_self_id.0, sender.clone()); // 在 nb 建立 bot 状态管理器
                 }
-                let bot = Bot::new(x_self_id.0, auth, sender, nb_arc.clone()).unwrap();
+                let bot = Bot::new(
+                    x_self_id.0,
+                    auth,
+                    sender,
+                    broadcaster.subscribe(),
+                    nb_arc.clone(),
+                )
+                .unwrap();
                 event!(
                     Level::INFO,
                     "{} Client {} is connectted. The client type is {}",
@@ -53,7 +61,7 @@ pub async fn run(nb_arc: Arc<Mutex<Nonebot>>) {
                     x_self_id.0.to_string().red(),
                     x_client_role.0.bright_cyan()
                 );
-                handle_socket(bot, socket, receiver).await;
+                handle_socket(bot, socket, receiver, broadcaster).await;
             }
         };
     let app = route("/ws", ws(handle_socket));
@@ -66,7 +74,7 @@ pub async fn run(nb_arc: Arc<Mutex<Nonebot>>) {
 
 async fn stream_recv(
     stream: futures_util::stream::SplitStream<axum::ws::WebSocket>,
-    bot: Bot,
+    mut bot: Bot,
 ) -> (futures_util::stream::SplitStream<axum::ws::WebSocket>, Bot) {
     let (msg, next_stream) = stream.into_future().await;
     if let Some(msg) = msg {
@@ -77,7 +85,12 @@ async fn stream_recv(
     (next_stream, bot)
 }
 
-async fn handle_socket(mut bot: Bot, socket: WebSocket, mut receiver: mpsc::Receiver<Apis>) {
+async fn handle_socket(
+    mut bot: Bot,
+    socket: WebSocket,
+    mut receiver: mpsc::Receiver<ChannelItem>,
+    broadcaster: broadcast::Sender<Setter>,
+) {
     // 将 websocket 接收流与发送流分离
     let (mut sink, mut stream) = socket.split();
     // 接收消息
@@ -91,13 +104,16 @@ async fn handle_socket(mut bot: Bot, socket: WebSocket, mut receiver: mpsc::Rece
     // 发送消息
     let outcome = async move {
         while let Some(data) = receiver.recv().await {
-            println!("{:#?}", data);
-            if let crate::api::Apis::None = data {
-            } else {
-                let json_string = serde_json::to_string(&data).unwrap();
-                sink.send(axum::ws::Message::text(json_string))
-                    .await
-                    .unwrap();
+            match data {
+                ChannelItem::Apis(data) => {
+                    let json_string = serde_json::to_string(&data).unwrap();
+                    sink.send(axum::ws::Message::text(json_string))
+                        .await
+                        .unwrap();
+                }
+                ChannelItem::Setter(set) => {
+                    broadcaster.send(set).unwrap();
+                }
             }
         }
     };

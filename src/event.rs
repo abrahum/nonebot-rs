@@ -180,11 +180,11 @@ pub struct Status {
 }
 
 pub trait UserId {
-    fn ger_user_id(&self) -> String;
+    fn get_user_id(&self) -> String;
 }
 
 impl UserId for MessageEvent {
-    fn ger_user_id(&self) -> String {
+    fn get_user_id(&self) -> String {
         match self {
             MessageEvent::Private(p) => p.user_id.to_string(),
             MessageEvent::Group(g) => g.user_id.to_string(),
@@ -193,13 +193,13 @@ impl UserId for MessageEvent {
 }
 
 impl UserId for NoticeEvent {
-    fn ger_user_id(&self) -> String {
+    fn get_user_id(&self) -> String {
         self.user_id.to_string()
     }
 }
 
 impl UserId for RequestEvent {
-    fn ger_user_id(&self) -> String {
+    fn get_user_id(&self) -> String {
         self.user_id.to_string()
     }
 }

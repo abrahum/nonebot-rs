@@ -6,23 +6,26 @@
 
 ## To-Do List
 
+
 - [ ] onebot 通讯方式
-  - [ ] HTTP
-  - [ ] HTTP POST
-  - [ ] 正向 WS
+  - [ ] HTTP （无限期推迟）
+  - [ ] 正向 WS （优先考虑）
   - [x] 反向 WS （使用 axum 实现）
 - [ ] Onebot 标准接口实现（使用 serde 实现）
   - [x] Event
   - [x] Message
   - [ ] Api
-- [x] But-in Handler
+- [x] Built-in Handler
   - [x] logger(tracing-subscriber)
-  - [x] echo
+  - [x] echo （基础应答功能）
+  - [ ] echo2 （对话功能实现）
+- [ ] built-in rules pre_matchers
 - [ ] Nbconfig
   - [x] 基本设置
   - [x] bot 设置
   - [ ] Matcher 设置
   - [ ] 定时任务设置
+- [ ] Message 构建 API 完善
 - [x] 插件式 Matcher 实现
   - [x] prematcher
   - [x] rules
@@ -65,3 +68,5 @@ command_start = ["/"]
 global 设置对每个未指定 bot 都有效，当在 global 外特别设置一个 bot 后，所有 global 设置对该 bot 全部失效（包括未指定项，当然应该也会报错）
 
 最小实例请看 bin/minimal.rs ，matcher 等等声明请看 builtin 中各项（锐意迭代中）。
+
+目前本项目处于非常不稳定阶段，项目结构、API 均为待定，感兴趣的同学可以 Star 一下以后再来看看（厚颜无耻）

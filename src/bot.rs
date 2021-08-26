@@ -5,15 +5,16 @@ use crate::event::Events;
 use crate::log::log_load_matchers;
 use crate::{Matchers, Nonebot};
 use std::sync::{Arc, Mutex};
-use tokio::sync::mpsc::Sender;
+use tokio::sync::{broadcast::Receiver, mpsc::Sender};
 use tracing::{event, Level};
 
-pub type ApiSender = Sender<Apis>;
+pub type ApiSender = Sender<ChannelItem>;
 
 pub struct Bot {
     self_id: String, // bot ID
+    listener: Receiver<Setter>,
     // amnb: Arc<Mutex<Nonebot>>, // Nonebot
-    sender: ApiSender,  // channel sender
+    // sender: ApiSender,  // channel sender
     matchers: Matchers, // Bot Matchers
     config: BotConfig,  // Bot config
 }
@@ -22,7 +23,8 @@ impl Bot {
     pub fn new(
         id: i64,
         authorization: Option<String>,
-        sender: Sender<Apis>,
+        sender: ApiSender,
+        listener: Receiver<Setter>,
         amnb: Arc<Mutex<Nonebot>>,
     ) -> Result<Self, String> {
         Bot::check_auth(authorization, amnb.clone())?;
@@ -52,8 +54,9 @@ impl Bot {
         matchers.set_sender(sender.clone());
         let bot = Bot {
             self_id: id.to_string(),
+            listener: listener,
             // amnb: amnb,
-            sender: sender,
+            // sender: sender,
             matchers: matchers,
             config: config,
         };
@@ -66,17 +69,16 @@ impl Bot {
         &self.self_id
     }
 
-    pub async fn handle_recv(&self, msg: String) {
+    pub async fn handle_recv(&mut self, msg: String) {
         // 处理接收到所有消息，分流上报 Event 和 Api 调用回执
+        while let Ok(set) = self.listener.try_recv() {
+            event!(Level::DEBUG, "get set {:?}", set);
+        }
         let data: serde_json::error::Result<Events> = serde_json::from_str(&msg);
         match data {
             Ok(events) => self.handle_events(events).await,
             Err(_) => self.handle_resp(msg).await,
         }
-        // match self.sender.try_send(crate::api::Apis::None) {
-        //     Ok(_) => {}
-        //     Err(_) => {}
-        // };
     }
 
     async fn handle_events(&self, events: Events) {
@@ -99,7 +101,7 @@ impl Bot {
     }
 
     async fn handle_resp(&self, resp: String) {
-        event!(Level::TRACE, "handling resp {}", resp);
+        event!(Level::DEBUG, "handling resp {}", resp);
         // 处理 Api 调用回执
         let resp: crate::api::ApiResp = serde_json::from_str(&resp).unwrap();
         builtin::resp_logger(resp).await;
@@ -138,4 +140,30 @@ impl Bot {
         // todo 鉴权
         Ok(true)
     }
+}
+
+#[derive(Debug)]
+pub enum ChannelItem {
+    Setter(Setter),
+    Apis(Apis),
+}
+
+#[derive(Debug, Clone)]
+pub enum Setter {
+    RemoveMatcher {
+        bot_id: String,
+        name: String,
+    },
+    AddMessageEventMatcher {
+        bot_id: String,
+        matcher: crate::matcher::Matcher<crate::event::MessageEvent>,
+    },
+    DisableMatcher {
+        bot_id: String,
+        name: String,
+    },
+    ChangeBotConfig {
+        bot_id: String,
+        bot_config: BotConfig,
+    },
 }

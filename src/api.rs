@@ -40,46 +40,21 @@ pub enum Apis {
         echo: String,
     },
     #[serde(rename = "send_group_msg")]
-    SendGroupMsg {
-        params: SendGroupMsg,
-        echo: String,
-    },
+    SendGroupMsg { params: SendGroupMsg, echo: String },
     #[serde(rename = "send_msg")]
-    SendMsg {
-        params: SendMsg,
-        echo: String,
-    },
+    SendMsg { params: SendMsg, echo: String },
     #[serde(rename = "delete_msg")]
-    DeleteMsg {
-        params: DeleteMsg,
-        echo: String,
-    },
+    DeleteMsg { params: DeleteMsg, echo: String },
     #[serde(rename = "get_msg")]
-    GetMsg {
-        params: GetMsg,
-        echo: String,
-    },
+    GetMsg { params: GetMsg, echo: String },
     #[serde(rename = "get_forward_msg")]
-    GetForwardMsg {
-        params: GetForwardMsg,
-        echo: String,
-    },
+    GetForwardMsg { params: GetForwardMsg, echo: String },
     #[serde(rename = "send_like")]
-    SendLike {
-        params: SendLike,
-        echo: String,
-    },
+    SendLike { params: SendLike, echo: String },
     #[serde(rename = "set_group_kick")]
-    SetGroupKick {
-        params: SetGroupKick,
-        echo: String,
-    },
+    SetGroupKick { params: SetGroupKick, echo: String },
     #[serde(rename = "set_group_ban")]
-    SetGroupBan {
-        params: SetGroupBan,
-        echo: String,
-    },
-    None,
+    SetGroupBan { params: SetGroupBan, echo: String },
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

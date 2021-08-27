@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+/// Onbot 协议规定的消息接口
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(tag = "type", content = "data")]
 pub enum Message {

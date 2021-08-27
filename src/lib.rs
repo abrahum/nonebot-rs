@@ -1,5 +1,6 @@
-//! # Nonebot-rs
-//!
+#![doc(html_favicon_url = "https://v2.nonebot.dev/logo.png")]
+#![doc(html_logo_url = "https://v2.nonebot.dev/logo.png")]
+
 //! Nonebot-rs 简称 nbrs，是一个基于 Nonebot2 思路的 Onebot 协议机器人框架 Rust 实现。
 //! 本框架的基本目标是实现比较便利的 Rust Onebot 机器人搭建。长期目标是以本项目为基础，
 //! 开发与其他脚本语言（比如：Python、Lua）互通的 Onebot 机器人平台（如果我能坚持下去
@@ -9,7 +10,7 @@
 //! 每个部分均可独立为单个 crate ，通过启动文件向 nbrs 注册 Matcher 后编译启动的方式
 //! 构建一个机器人实例。
 //!
-//! ## nbrs 设计
+//! # nbrs 设计
 //!
 //! nbrs 启动后，将读取设置文件、并注册 Matchers（其实这一步已经在编译时硬编码），当接
 //! 收到 WebSocket 连接后，将新建一个 Bot 实例，接受 Event 后，由 Bot 负责逐渐匹配分发
@@ -18,15 +19,18 @@
 
 /////////////////////////////////////////////////////////////////////////////////
 
-mod api;
+pub mod api;
 mod axum_driver;
-mod bot;
+pub mod bot;
+/// 内建组件
 pub mod builtin;
-mod config;
-mod event;
+pub mod config;
+pub mod event;
 mod log;
-mod matcher;
-mod message;
+/// Matcher 定义
+pub mod matcher;
+/// Onebot 消息接口定义
+pub mod message;
 mod results;
 mod utils;
 
@@ -36,12 +40,12 @@ use std::sync::{Arc, Mutex};
 #[macro_use]
 extern crate lazy_static;
 
-/// 按照 priority 存储 MatchersHashMap
+/// 按 `priority` 依序存储 `MatchersHashMap`
 pub type MatchersBTreeMap<E> = BTreeMap<i8, MatchersHashMap<E>>;
-/// 使用唯一名字存储 Matcher
+/// 使用唯一名字存储 `Matcher`
 pub type MatchersHashMap<E> = HashMap<String, matcher::Matcher<E>>;
 
-/// 根据 Event 类型分类存储对应的 Matcher
+/// 根据 `Event` 类型分类存储对应的 `Matcher`
 #[derive(Clone, Debug)]
 pub struct Matchers {
     message: MatchersBTreeMap<event::MessageEvent>,
@@ -122,6 +126,8 @@ impl Matchers {
     }
 }
 
+/// Bot 状态暂存
+///
 /// `Nonebot.bots` 结构体中保存的对象，请注意与 `nonebot_rs::bot::Bot` 的区分，本结构体
 /// 用于储存从配置中读取的 `BotConfig`、后续跨 `Bot` 通讯也需要从该结构体查询。
 #[derive(Debug)]
@@ -132,7 +138,9 @@ pub struct Bot {
     pub sender: Option<bot::ApiSender>,
 }
 
-/// nbrs 本体，用于注册 Matcher，暂存配置项，以及启动实例
+/// nbrs 本体
+///
+/// 用于注册 `Matcher`，暂存配置项，以及启动实例
 pub struct Nonebot {
     pub config: config::NbConfig, // 全局设置
     pub bots: HashMap<String, Bot>,

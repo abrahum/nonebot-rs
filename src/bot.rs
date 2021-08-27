@@ -14,7 +14,7 @@ pub struct Bot {
     self_id: String, // bot ID
     listener: Receiver<Setter>,
     // amnb: Arc<Mutex<Nonebot>>, // Nonebot
-    // sender: ApiSender,  // channel sender
+    sender: ApiSender,  // channel sender
     matchers: Matchers, // Bot Matchers
     config: BotConfig,  // Bot config
 }
@@ -56,7 +56,7 @@ impl Bot {
             self_id: id.to_string(),
             listener: listener,
             // amnb: amnb,
-            // sender: sender,
+            sender: sender,
             matchers: matchers,
             config: config,
         };
@@ -73,6 +73,28 @@ impl Bot {
         // 处理接收到所有消息，分流上报 Event 和 Api 调用回执
         while let Ok(set) = self.listener.try_recv() {
             event!(Level::DEBUG, "get set {:?}", set);
+            match set {
+                Setter::AddMessageEventMatcher {
+                    bot_id: id,
+                    message_event_matcher: mut matcher,
+                } => {
+                    if id == self.self_id {
+                        matcher.set_sender(self.sender.clone());
+                        self.matchers.add_message_matcher(matcher.clone());
+                        event!(Level::DEBUG, "Add temp matcher {:?}", matcher);
+                    }
+                }
+                Setter::RemoveMatcher {
+                    bot_id: id,
+                    name: matcher_name,
+                } => {
+                    if id == self.self_id {
+                        self.matchers.remove_matcher(&matcher_name);
+                        event!(Level::DEBUG, "Remove matcher {}", matcher_name);
+                    }
+                }
+                _ => {}
+            }
         }
         let data: serde_json::error::Result<Events> = serde_json::from_str(&msg);
         match data {
@@ -84,20 +106,25 @@ impl Bot {
     async fn handle_events(&self, events: Events) {
         event!(Level::TRACE, "handling events {:?}", events);
         // 处理上报 Event 分流不同 Event 类型
-        match events {
-            Events::Message(e) => {
-                builtin::logger(&e).await.unwrap();
-                self.handle_event(&self.matchers.message, e).await;
+        let matchers = self.matchers.clone();
+        let config = self.config.clone();
+        let bot_id = self.self_id.clone();
+        tokio::spawn(async move {
+            match events {
+                Events::Message(e) => {
+                    builtin::logger(&e).await.unwrap();
+                    Bot::handle_event(&matchers.message, e, config, bot_id).await;
+                }
+                Events::Notice(e) => {
+                    Bot::handle_event(&matchers.notice, e, config, bot_id).await;
+                }
+                Events::Request(e) => Bot::handle_event(&matchers.request, e, config, bot_id).await,
+                Events::Meta(e) => {
+                    builtin::metahandle(&e).await;
+                    Bot::handle_event(&matchers.meta, e, config, bot_id).await;
+                }
             }
-            Events::Notice(e) => {
-                self.handle_event(&self.matchers.notice, e).await;
-            }
-            Events::Request(e) => self.handle_event(&self.matchers.request, e).await,
-            Events::Meta(e) => {
-                builtin::metahandle(&e).await;
-                self.handle_event(&self.matchers.meta, e).await;
-            }
-        }
+        });
     }
 
     async fn handle_resp(&self, resp: String) {
@@ -107,20 +134,29 @@ impl Bot {
         builtin::resp_logger(resp).await;
     }
 
-    async fn handle_event<E>(&self, matcherb: &crate::MatchersBTreeMap<E>, e: E)
-    where
+    async fn handle_event<E>(
+        matcherb: &crate::MatchersBTreeMap<E>,
+        e: E,
+        config: BotConfig,
+        bot_id: String,
+    ) where
         E: Clone + Send + 'static + std::fmt::Debug,
     {
         event!(Level::TRACE, "handling event {:?}", e);
         // 根据不同 Event 类型，逐级匹配，判定是否 Block
         for (_, matcherh) in matcherb {
-            if self.handler_event_(matcherh, e.clone()).await {
+            if Bot::handler_event_(matcherh, e.clone(), config.clone(), bot_id.clone()).await {
                 break;
             };
         }
     }
 
-    async fn handler_event_<E>(&self, matcherh: &crate::MatchersHashMap<E>, e: E) -> bool
+    async fn handler_event_<E>(
+        matcherh: &crate::MatchersHashMap<E>,
+        e: E,
+        config: BotConfig,
+        bot_id: String,
+    ) -> bool
     where
         E: Clone + Send + 'static + std::fmt::Debug,
     {
@@ -128,9 +164,17 @@ impl Bot {
         // 每级 Matcher 匹配，返回是否 block
         let mut get_block = false;
         for (_, matcher) in matcherh {
-            let matched = matcher.match_(e.clone(), self.config.clone()).await;
+            let matched = matcher.match_(e.clone(), config.clone()).await;
             if matched && matcher.is_block() {
                 get_block = true;
+            }
+            if matched && matcher.is_temp() {
+                matcher
+                    .set(Setter::RemoveMatcher {
+                        bot_id: bot_id.clone(),
+                        name: matcher.name.clone(),
+                    })
+                    .await;
             }
         }
         get_block
@@ -156,7 +200,7 @@ pub enum Setter {
     },
     AddMessageEventMatcher {
         bot_id: String,
-        matcher: crate::matcher::Matcher<crate::event::MessageEvent>,
+        message_event_matcher: crate::matcher::Matcher<crate::event::MessageEvent>,
     },
     DisableMatcher {
         bot_id: String,

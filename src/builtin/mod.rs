@@ -2,6 +2,7 @@ pub mod aftermatcher;
 pub mod echo;
 pub mod macros;
 pub mod prematcher;
+pub mod rcnb;
 pub mod rules;
 
 use crate::event::{MessageEvent, MetaEvent};

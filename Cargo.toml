@@ -15,6 +15,7 @@ chrono = "0.4.19"
 toml = "0.5.8"
 async-trait = "0.1.51"
 colored = "2.0.0"
+rcnb-rs = "0.1.0"
 
 [dependencies.serde]
 version = "1.0"

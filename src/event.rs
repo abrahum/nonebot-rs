@@ -25,6 +25,14 @@ pub enum MessageEvent {
 
 impl MessageEvent {
     #[allow(dead_code)]
+    pub fn get_time(&self) -> i64 {
+        match self {
+            MessageEvent::Private(p) => p.time,
+            MessageEvent::Group(g) => g.time,
+        }
+    }
+
+    #[allow(dead_code)]
     pub fn get_raw_message(&self) -> &str {
         match self {
             MessageEvent::Private(p) => &p.raw_message,

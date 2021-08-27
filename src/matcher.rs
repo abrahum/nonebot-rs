@@ -17,11 +17,10 @@ where
     E: Clone,
 {
     // Matcher 匹配器，每个匹配器对应一个 handle 函数
-    pub name: String,                      // 名称（需要唯一性）
-    sender: Option<ApiSender>,             // 发送器
-    pub priority: i8,                      // 匹配优先级
-    pre_matchers: Vec<Arc<PreMatcher<E>>>, // 可以改变 event 的前处理器
-    // after_matchers: Vec<Arc<AfterMatcher<E>>>,  // todo 注销 temp Matcher 等
+    pub name: String,                           // 名称（需要唯一性）
+    sender: Option<ApiSender>,                  // 发送器
+    pub priority: i8,                           // 匹配优先级
+    pre_matchers: Vec<Arc<PreMatcher<E>>>,      // 可以改变 event 的前处理器
     rules: Vec<Rule<E>>,                        // 所有需要被满足的 rule
     block: bool,                                // 是否阻止事件向下一级传递
     handler: Arc<dyn Handler<E> + Sync + Send>, // struct impl Handler trait
@@ -128,6 +127,45 @@ where
             .await
             .unwrap();
     }
+
+    pub async fn set(&self, set: crate::bot::Setter) {
+        self.sender
+            .clone()
+            .unwrap()
+            .send(ChannelItem::Setter(set))
+            .await
+            .unwrap();
+    }
+
+    pub async fn set_message_matcher(&self, bot_id: String, matcher: Matcher<MessageEvent>) {
+        use crate::bot::Setter;
+        let set = Setter::AddMessageEventMatcher {
+            bot_id: bot_id,
+            message_event_matcher: matcher,
+        };
+        self.set(set).await;
+    }
+}
+
+pub fn build_temp_message_event_matcher<H>(
+    event: &MessageEvent,
+    handler: H,
+) -> Matcher<MessageEvent>
+where
+    H: Handler<MessageEvent> + Send + Sync + 'static,
+{
+    use crate::event::UserId;
+    let mut m = Matcher::new(
+        format!("{}-{}", event.get_user_id(), event.get_time()),
+        Arc::new(handler),
+    )
+    .add_rule(crate::builtin::rules::is_user(event.get_user_id()));
+    if let MessageEvent::Group(g) = event {
+        m.add_rule(crate::builtin::rules::in_group(g.group_id));
+    } else {
+        m.add_rule(crate::builtin::rules::is_private_message_event());
+    }
+    m.set_priority(0).set_temp(true)
 }
 
 impl<E> Matcher<E>
@@ -136,6 +174,11 @@ where
 {
     pub fn set_sender(&mut self, sender: ApiSender) -> Matcher<E> {
         self.sender = Some(sender);
+        self.clone()
+    }
+
+    pub fn set_priority(&mut self, priority: i8) -> Matcher<E> {
+        self.priority = priority;
         self.clone()
     }
 
@@ -180,6 +223,11 @@ where
 
     pub fn is_temp(&self) -> bool {
         self.temp
+    }
+
+    pub fn set_temp(&mut self, temp: bool) -> Matcher<E> {
+        self.temp = temp;
+        self.clone()
     }
 }
 

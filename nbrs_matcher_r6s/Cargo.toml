@@ -1,0 +1,11 @@
+[package]
+name = "nbrs_matcher_r6s"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+nonebot_rs = { path = "../nonebot_rs" }
+reqwest = { version = "0.11.4", features = ["json"] }
+serde_json = "1.0.66"

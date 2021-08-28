@@ -37,6 +37,7 @@ mod utils;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
+pub use async_trait::async_trait;
 #[doc(inline)]
 pub use matcher::matchers::{Matchers, MatchersBTreeMap, MatchersHashMap};
 

@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+/// Onebot Api 响应
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ApiResp {
     pub status: String,
@@ -8,6 +9,7 @@ pub struct ApiResp {
     pub echo: String,
 }
 
+/// Onebot Api 响应 data 字段
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RespData {
     pub message_id: Option<i32>,
@@ -18,6 +20,7 @@ pub struct RespData {
     pub message: Option<Vec<crate::message::Message>>,
 }
 
+/// Onebot Api 响应 sender 字段
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Sender {
     pub user_id: i64,          // 发送者 QQ 号

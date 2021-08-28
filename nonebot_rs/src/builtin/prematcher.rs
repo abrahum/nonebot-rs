@@ -20,8 +20,8 @@ pub fn to_me() -> Arc<PreMatcher<MessageEvent>> {
                 }
                 for message in &g.message {
                     match message {
-                        Message::At(at) => {
-                            if at.qq == bot_id {
+                        Message::At { qq: qq_id } => {
+                            if qq_id == &bot_id {
                                 return true;
                             }
                         }

@@ -20,7 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////////
 
 pub mod api;
-mod axum_driver;
+pub mod axum_driver;
 pub mod bot;
 /// 内建组件
 pub mod builtin;
@@ -34,97 +34,14 @@ pub mod message;
 mod results;
 mod utils;
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+
+#[doc(inline)]
+pub use matcher::matchers::{Matchers, MatchersBTreeMap, MatchersHashMap};
 
 #[macro_use]
 extern crate lazy_static;
-
-/// 按 `priority` 依序存储 `MatchersHashMap`
-pub type MatchersBTreeMap<E> = BTreeMap<i8, MatchersHashMap<E>>;
-/// 使用唯一名字存储 `Matcher`
-pub type MatchersHashMap<E> = HashMap<String, matcher::Matcher<E>>;
-
-/// 根据 `Event` 类型分类存储对应的 `Matcher`
-#[derive(Clone, Debug)]
-pub struct Matchers {
-    message: MatchersBTreeMap<event::MessageEvent>,
-    notice: MatchersBTreeMap<event::NoticeEvent>,
-    request: MatchersBTreeMap<event::RequestEvent>,
-    meta: MatchersBTreeMap<event::MetaEvent>,
-}
-
-impl Matchers {
-    pub fn new(
-        message: Option<MatchersBTreeMap<event::MessageEvent>>,
-        notice: Option<MatchersBTreeMap<event::NoticeEvent>>,
-        request: Option<MatchersBTreeMap<event::RequestEvent>>,
-        meta: Option<MatchersBTreeMap<event::MetaEvent>>,
-    ) -> Matchers {
-        Matchers {
-            message: unoptionb(&message),
-            notice: unoptionb(&notice),
-            request: unoptionb(&request),
-            meta: unoptionb(&meta),
-        }
-    }
-
-    pub fn add_message_matcher(
-        &mut self,
-        matcher: matcher::Matcher<event::MessageEvent>,
-    ) -> &mut Self {
-        match self.message.get(&matcher.priority) {
-            Some(_) => {
-                self.message
-                    .get_mut(&matcher.priority)
-                    .unwrap()
-                    .insert(matcher.name.clone(), matcher);
-            }
-            None => {
-                let mut hashmap: MatchersHashMap<event::MessageEvent> = HashMap::new();
-                hashmap.insert(matcher.name.clone(), matcher.clone());
-                self.message.insert(matcher.priority, hashmap);
-            }
-        }
-        self
-    }
-
-    pub fn remove_matcher(&mut self, name: &str) {
-        fn remove_matcher_<E>(matcherb: &mut MatchersBTreeMap<E>, name: &str)
-        where
-            E: Clone,
-        {
-            for (_, matcherh) in matcherb.iter_mut() {
-                if let Some(_) = matcherh.remove(name) {
-                    return;
-                }
-            }
-        }
-
-        remove_matcher_(&mut self.message, name);
-        remove_matcher_(&mut self.notice, name);
-        remove_matcher_(&mut self.request, name);
-        remove_matcher_(&mut self.meta, name);
-    }
-
-    pub fn set_sender(&mut self, sender: bot::ApiSender) {
-        fn set_sender_<E>(matcherb: &mut MatchersBTreeMap<E>, sender: bot::ApiSender)
-        where
-            E: Clone,
-        {
-            for (_, matcherh) in matcherb.iter_mut() {
-                for (_, matcher) in matcherh.iter_mut() {
-                    matcher.set_sender(sender.clone());
-                }
-            }
-        }
-
-        set_sender_(&mut self.message, sender.clone());
-        set_sender_(&mut self.notice, sender.clone());
-        set_sender_(&mut self.request, sender.clone());
-        set_sender_(&mut self.meta, sender.clone());
-    }
-}
 
 /// Bot 状态暂存
 ///
@@ -195,25 +112,23 @@ impl Nonebot {
         }
     }
 
+    pub fn pre_run(&self) {
+        use colored::*;
+        log::init(self.config.global.debug, self.config.global.trace);
+        tracing::event!(
+            tracing::Level::INFO,
+            "{}",
+            "高性能自律実験4号機が稼働中····".red()
+        );
+    }
+
     /// 运行 Nonebot 实例
     pub fn run(self) {
-        log::init(self.config.global.debug, self.config.global.trace);
+        self.pre_run();
         let rt = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
             .build()
             .unwrap();
         rt.block_on(axum_driver::run(Arc::new(Mutex::new(self))));
-    }
-}
-
-#[doc(hidden)]
-fn unoptionb<K, D>(input: &Option<BTreeMap<K, D>>) -> BTreeMap<K, D>
-where
-    K: Clone + std::cmp::Ord,
-    D: Clone,
-{
-    match input {
-        Some(t) => t.clone(),
-        None => BTreeMap::new(),
     }
 }

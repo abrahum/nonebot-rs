@@ -1,0 +1,22 @@
+[package]
+name = "nbrs_py"
+license = "MIT"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "nbrs_py"
+crate-type = ["cdylib"]
+
+[dependencies]
+nonebot_rs = { path = "../nonebot_rs" }
+
+[dependencies.pyo3]
+version = "0.14.2"
+features = ["extension-module"]
+
+[dependencies.pyo3-asyncio]
+version = "0.14"
+features = ["tokio-runtime"]

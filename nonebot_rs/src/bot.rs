@@ -1,15 +1,17 @@
 use crate::api::Apis;
 use crate::builtin;
 use crate::config::BotConfig;
-use crate::event::Events;
+use crate::event::{Events, SelfId};
 use crate::log::log_load_matchers;
 use crate::{Matchers, Nonebot};
 use std::sync::{Arc, Mutex};
 use tokio::sync::{broadcast::Receiver, mpsc::Sender};
 use tracing::{event, Level};
 
+/// 发送 Api 请求的 mpsc channel sender
 pub type ApiSender = Sender<ChannelItem>;
 
+/// Bot 运行实例
 pub struct Bot {
     self_id: String, // bot ID
     listener: Receiver<Setter>,
@@ -20,6 +22,7 @@ pub struct Bot {
 }
 
 impl Bot {
+    /// 新建 Bot 实例
     pub fn new(
         id: i64,
         authorization: Option<String>,
@@ -61,40 +64,22 @@ impl Bot {
             config: config,
         };
         log_load_matchers(&bot.matchers);
+        bot.matchers.run_on_connect();
         Ok(bot)
     }
 
+    /// 返回 `Bot.self_id` 属性
     #[allow(dead_code)]
     pub fn get_self_id(&self) -> &str {
         &self.self_id
     }
 
+    /// 接收 WebSocket 消息处理并分发 Event 和 ApiResp
     pub async fn handle_recv(&mut self, msg: String) {
         // 处理接收到所有消息，分流上报 Event 和 Api 调用回执
         while let Ok(set) = self.listener.try_recv() {
             event!(Level::DEBUG, "get set {:?}", set);
-            match set {
-                Setter::AddMessageEventMatcher {
-                    bot_id: id,
-                    message_event_matcher: mut matcher,
-                } => {
-                    if id == self.self_id {
-                        matcher.set_sender(self.sender.clone());
-                        self.matchers.add_message_matcher(matcher.clone());
-                        event!(Level::DEBUG, "Add temp matcher {:?}", matcher);
-                    }
-                }
-                Setter::RemoveMatcher {
-                    bot_id: id,
-                    name: matcher_name,
-                } => {
-                    if id == self.self_id {
-                        self.matchers.remove_matcher(&matcher_name);
-                        event!(Level::DEBUG, "Remove matcher {}", matcher_name);
-                    }
-                }
-                _ => {}
-            }
+            self.handle_setter(set);
         }
         let data: serde_json::error::Result<Events> = serde_json::from_str(&msg);
         match data {
@@ -103,6 +88,71 @@ impl Bot {
         }
     }
 
+    /// 接收 Setter 并处理
+    fn handle_setter(&mut self, set: Setter) {
+        match set {
+            Setter::AddMessageEventMatcher {
+                bot_id: id,
+                message_event_matcher: mut matcher,
+            } => {
+                if id == self.self_id {
+                    matcher.set_sender(self.sender.clone());
+                    self.matchers.add_message_matcher(matcher.clone());
+                    event!(
+                        Level::DEBUG,
+                        "[{}] Add temp matcher {:?}",
+                        self.self_id,
+                        matcher
+                    );
+                }
+            }
+            Setter::RemoveMatcher {
+                bot_id: id,
+                name: matcher_name,
+            } => {
+                if id == self.self_id {
+                    self.matchers.remove_matcher(&matcher_name);
+                    event!(
+                        Level::DEBUG,
+                        "[{}] Remove matcher {}",
+                        self.self_id,
+                        matcher_name
+                    );
+                }
+            }
+            Setter::DisableMatcher {
+                bot_id: id,
+                name: matcher_name,
+            } => {
+                if id == self.self_id {
+                    self.matchers.disable_matcher(&matcher_name, true);
+                    event!(
+                        Level::DEBUG,
+                        "[{}] Disable matcher{}",
+                        self.self_id,
+                        matcher_name
+                    );
+                }
+            }
+            Setter::EnableMatcher {
+                bot_id: id,
+                name: matcher_name,
+            } => {
+                if id == self.self_id {
+                    self.matchers.disable_matcher(&matcher_name, false);
+                    event!(
+                        Level::DEBUG,
+                        "[{}] Enable matcher{}",
+                        self.self_id,
+                        matcher_name
+                    );
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// 接受 Event ，根据 Event 类型分发（协程处理）
     async fn handle_events(&self, events: Events) {
         event!(Level::TRACE, "handling events {:?}", events);
         // 处理上报 Event 分流不同 Event 类型
@@ -127,6 +177,7 @@ impl Bot {
         });
     }
 
+    /// 接收 ApiResp 处理 log
     async fn handle_resp(&self, resp: String) {
         event!(Level::DEBUG, "handling resp {}", resp);
         // 处理 Api 调用回执
@@ -134,13 +185,14 @@ impl Bot {
         builtin::resp_logger(resp).await;
     }
 
+    /// 接收按类型分发后的 Event 逐级匹配 Matcher
     async fn handle_event<E>(
         matcherb: &crate::MatchersBTreeMap<E>,
         e: E,
         config: BotConfig,
         bot_id: String,
     ) where
-        E: Clone + Send + 'static + std::fmt::Debug,
+        E: Clone + Send + 'static + std::fmt::Debug + SelfId,
     {
         event!(Level::TRACE, "handling event {:?}", e);
         // 根据不同 Event 类型，逐级匹配，判定是否 Block
@@ -151,6 +203,7 @@ impl Bot {
         }
     }
 
+    #[doc(hidden)]
     async fn handler_event_<E>(
         matcherh: &crate::MatchersHashMap<E>,
         e: E,
@@ -158,7 +211,7 @@ impl Bot {
         bot_id: String,
     ) -> bool
     where
-        E: Clone + Send + 'static + std::fmt::Debug,
+        E: Clone + Send + 'static + std::fmt::Debug + SelfId,
     {
         event!(Level::TRACE, "handling event_ {:?}", e);
         // 每级 Matcher 匹配，返回是否 block
@@ -180,32 +233,39 @@ impl Bot {
         get_block
     }
 
-    fn check_auth(auth: Option<String>, amnb: Arc<Mutex<Nonebot>>) -> Result<bool, String> {
-        // todo 鉴权
+    /// 连接鉴权
+    fn check_auth(_auth: Option<String>, _amnb: Arc<Mutex<Nonebot>>) -> Result<bool, String> {
+        // todo
         Ok(true)
     }
 }
 
+/// mpsc channel 传递项
 #[derive(Debug)]
 pub enum ChannelItem {
+    /// Bot 内部设置项
+    ///
+    /// 接收后会由 broadcaster 分发给所有 Bot
     Setter(Setter),
+    /// Onebot Api
     Apis(Apis),
 }
 
+/// Bot 内部设置项
 #[derive(Debug, Clone)]
 pub enum Setter {
-    RemoveMatcher {
-        bot_id: String,
-        name: String,
-    },
+    /// 移除 Matcher
+    RemoveMatcher { bot_id: String, name: String },
+    /// 添加 Matcher<MessageEvent>
     AddMessageEventMatcher {
         bot_id: String,
         message_event_matcher: crate::matcher::Matcher<crate::event::MessageEvent>,
     },
-    DisableMatcher {
-        bot_id: String,
-        name: String,
-    },
+    /// 禁用 Matcher
+    DisableMatcher { bot_id: String, name: String },
+    /// 取消禁用 Matcher
+    EnableMatcher { bot_id: String, name: String },
+    /// 变更 BotConfig
     ChangeBotConfig {
         bot_id: String,
         bot_config: BotConfig,

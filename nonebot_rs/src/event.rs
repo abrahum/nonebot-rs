@@ -41,14 +41,6 @@ impl MessageEvent {
     }
 
     #[allow(dead_code)]
-    pub fn get_self_id(&self) -> String {
-        match self {
-            MessageEvent::Private(p) => p.self_id.to_string(),
-            MessageEvent::Group(g) => g.self_id.to_string(),
-        }
-    }
-
-    #[allow(dead_code)]
     pub fn set_raw_message(&mut self, new_raw_message: String) -> MessageEvent {
         match self {
             MessageEvent::Private(p) => {
@@ -209,5 +201,36 @@ impl UserId for NoticeEvent {
 impl UserId for RequestEvent {
     fn get_user_id(&self) -> String {
         self.user_id.to_string()
+    }
+}
+
+pub trait SelfId {
+    fn get_self_id(&self) -> String;
+}
+
+impl SelfId for MessageEvent {
+    fn get_self_id(&self) -> String {
+        match self {
+            MessageEvent::Private(p) => p.self_id.to_string(),
+            MessageEvent::Group(g) => g.self_id.to_string(),
+        }
+    }
+}
+
+impl SelfId for RequestEvent {
+    fn get_self_id(&self) -> String {
+        self.self_id.to_string()
+    }
+}
+
+impl SelfId for NoticeEvent {
+    fn get_self_id(&self) -> String {
+        self.self_id.to_string()
+    }
+}
+
+impl SelfId for MetaEvent {
+    fn get_self_id(&self) -> String {
+        self.self_id.to_string()
     }
 }

@@ -1,5 +1,5 @@
 use crate::builtin;
-use crate::event::MessageEvent;
+use crate::event::{MessageEvent, SelfId};
 use crate::matcher::build_temp_message_event_matcher;
 use crate::matcher::{Handler, Matcher};
 use crate::{on_command, on_match_all};
@@ -40,13 +40,14 @@ impl Handler<MessageEvent> for Rcnb {
                     build_temp_message_event_matcher(&event, Temp {}),
                 )
                 .await;
+            matcher.send_text("Please enter something.").await;
         }
     }
 }
 
 pub fn rcnb() -> Matcher<MessageEvent> {
     use std::sync::Arc;
-    Matcher::new("Rcnb".to_string(), Arc::new(Rcnb {}))
+    Matcher::new("Rcnb".to_string(), Rcnb {})
         .add_pre_matcher(builtin::prematcher::to_me())
         .add_pre_matcher(Arc::new(builtin::prematcher::command_start))
 }

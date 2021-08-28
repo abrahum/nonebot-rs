@@ -4,7 +4,13 @@
 
 计划是实现 Nonebot2 的完整架构，但是由于 rust 的安全性设计，不可避免的出现了一些魔改，正在努力把开发接口包装成类似的样式(是我太菜了)。
 
-<details><summary><h2 style="display:inline">To-Do List</h2></summary>
+## nbrs_py
+
+使用 Nonebot_rs 作为核心的 Python module (未达到可用状态)
+
+## To-Do List
+
+<details><summary>nonebot_rs</summary>
 
 - [ ] onebot 通讯方式
   - [ ] HTTP (无限期推迟)
@@ -37,6 +43,11 @@
 - [ ] 实现属性宏声明插件，便于二次开发
 - [ ] 模块化分离各组件
 - [ ] 使用 pyo3 搭建 nonebot-rs 版 Python 库(又绕回来了.jpg)
+
+</details>
+
+<details><summary>nbrs_py</summary>
+Nothing yet.
 </details>
 
 ## 特别鸣谢

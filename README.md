@@ -4,8 +4,7 @@
 
 计划是实现 Nonebot2 的完整架构，但是由于 rust 的安全性设计，不可避免的出现了一些魔改，正在努力把开发接口包装成类似的样式(是我太菜了)。
 
-## To-Do List
-
+<details><summary><h2 style="display:inline">To-Do List</h2></summary>
 
 - [ ] onebot 通讯方式
   - [ ] HTTP (无限期推迟)
@@ -38,6 +37,7 @@
 - [ ] 实现属性宏声明插件，便于二次开发
 - [ ] 模块化分离各组件
 - [ ] 使用 pyo3 搭建 nonebot-rs 版 Python 库(又绕回来了.jpg)
+</details>
 
 ## 特别鸣谢
 
@@ -68,6 +68,6 @@ command_start = ["/"]
 
 global 设置对每个未指定 bot 都有效，当在 global 外特别设置一个 bot 后，所有 global 设置对该 bot 全部失效(包括未指定项，当然应该也会报错)
 
-最小实例请看 bin/minimal.rs ，matcher 等等声明请看 builtin 中各项(锐意迭代中)。
+最小实例请看 nonebot_rs/bin/minimal.rs ，matcher 等等声明请看 builtin 中各项(锐意迭代中)。
 
 目前本项目处于非常不稳定阶段，项目结构、API 均为待定，感兴趣的同学可以 Star 一下以后再来看看(厚颜无耻)

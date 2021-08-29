@@ -36,7 +36,7 @@ pub fn to_me() -> Arc<PreMatcher<MessageEvent>> {
     Arc::new(to_me)
 }
 
-pub fn command_start(event: &mut MessageEvent, config: BotConfig) -> bool {
+fn command_start_(event: &mut MessageEvent, config: BotConfig) -> bool {
     let raw_message = remove_space(&event.get_raw_message());
     let command_starts = config.command_start;
     if command_starts.is_empty() {
@@ -50,4 +50,8 @@ pub fn command_start(event: &mut MessageEvent, config: BotConfig) -> bool {
         }
     }
     false
+}
+
+pub fn command_start() -> Arc<PreMatcher<MessageEvent>> {
+    Arc::new(command_start_)
 }

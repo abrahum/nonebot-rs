@@ -4,7 +4,6 @@ use crate::matcher::{Handler, Matcher};
 use crate::message::Message;
 use crate::{on_command, on_match_all};
 use async_trait::async_trait;
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct Echo {}
@@ -23,7 +22,7 @@ impl Handler<MessageEvent> for Echo {
 pub fn echo() -> Matcher<MessageEvent> {
     Matcher::new("Echo".to_string(), Echo {})
         .add_pre_matcher(builtin::prematcher::to_me())
-        .add_pre_matcher(Arc::new(builtin::prematcher::command_start))
+        .add_pre_matcher(builtin::prematcher::command_start())
 }
 
 #[derive(Clone)]
@@ -63,5 +62,5 @@ impl Handler<MessageEvent> for Echo2 {
 pub fn echo2() -> Matcher<MessageEvent> {
     Matcher::new("Echo2".to_string(), Echo2 {})
         .add_pre_matcher(builtin::prematcher::to_me())
-        .add_pre_matcher(Arc::new(builtin::prematcher::command_start))
+        .add_pre_matcher(builtin::prematcher::command_start())
 }

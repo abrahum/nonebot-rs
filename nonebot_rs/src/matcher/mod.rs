@@ -1,12 +1,11 @@
 use crate::bot::{ApiRespWatcher, ApiSender, ChannelItem};
 use crate::config::BotConfig;
 use crate::event::{MessageEvent, SelfId};
-use crate::utils::{later_timestamp, timestamp};
-// use crate::results::AfterMatcherResult;
+use crate::utils::timestamp;
 use async_trait::async_trait;
 use colored::*;
 use std::sync::Arc;
-use tokio::sync::watch::Receiver;
+use tokio::sync::mpsc;
 use tracing::{event as tevent, Level};
 
 pub mod matchers;
@@ -73,7 +72,7 @@ where
     E: Clone,
 {
     /// 新 Bot 连接时，调用该函数
-    fn on_bot_connect(&self) {}
+    fn on_bot_connect(&self, _: Matcher<E>) {}
     /// 匹配函数
     fn match_(&self, event: &mut E) -> bool;
     /// 处理函数
@@ -233,9 +232,7 @@ where
     } else {
         m.add_rule(crate::builtin::rules::is_private_message_event());
     }
-    m.set_priority(0)
-        .set_temp(true)
-        .set_timeout(later_timestamp(30))
+    m.set_priority(0).set_temp(true)
 }
 
 impl<E> Matcher<E>
@@ -245,6 +242,10 @@ where
     pub fn set_sender(&mut self, sender: ApiSender) -> Matcher<E> {
         self.sender = Some(sender);
         self.clone()
+    }
+
+    pub fn get_sender(&mut self) -> Option<ApiSender> {
+        self.sender.clone()
     }
 
     pub fn set_watcher(&mut self, watcher: ApiRespWatcher) -> Matcher<E> {
@@ -261,11 +262,6 @@ where
         self.pre_matchers.push(pre_matcher);
         self.clone()
     }
-
-    // pub fn add_after_matcher(&mut self, after_matcher: Arc<AfterMatcher<E>>) -> Matcher<E> {
-    //     self.after_matchers.push(after_matcher);
-    //     self.clone()
-    // }
 
     pub fn add_rule(&mut self, rule: Rule<E>) -> Matcher<E> {
         self.rules.push(rule);
@@ -315,12 +311,84 @@ where
     }
 }
 
+impl<E> Matcher<E>
+where
+    E: Clone,
+{
+    pub async fn call_api_resp(&self, api: crate::Api) -> Option<crate::api::ApiResp> {
+        let echo = api.get_echo();
+        self.sender
+            .clone()
+            .unwrap()
+            .send(crate::bot::ChannelItem::Api(api))
+            .await
+            .unwrap();
+        let mut watcher = self.watcher.clone().unwrap();
+        let time = crate::utils::timestamp();
+        while let Ok(_) = watcher.changed().await {
+            let resp = (*watcher.borrow()).clone();
+            if resp.echo == echo {
+                return Some(resp.clone());
+            }
+            if crate::utils::timestamp() > time + 30 {
+                return None;
+            }
+        }
+        None
+    }
+}
+
 impl Matcher<MessageEvent> {
     pub async fn send_text(&self, msg: &str) {
         let msg = crate::message::Message::Text {
             text: msg.to_string(),
         };
         self.send(vec![msg]).await;
+    }
+
+    pub async fn request_message(&self, msg: &str) -> String {
+        struct Temp {}
+
+        #[async_trait]
+        impl Handler<MessageEvent> for Temp {
+            crate::on_match_all!();
+            async fn handle(&self, event: MessageEvent, matcher: Matcher<MessageEvent>) {
+                matcher
+                    .sender
+                    .clone()
+                    .unwrap()
+                    .send(crate::bot::ChannelItem::MessageEvent(event))
+                    .await
+                    .unwrap();
+            }
+        }
+
+        let (sender, mut receiver) = mpsc::channel::<crate::bot::ChannelItem>(4);
+        let event = self.event.clone().unwrap();
+        self.set_message_matcher(
+            event.get_self_id(),
+            build_temp_message_event_matcher(&event, Temp {}).set_sender(sender),
+        )
+        .await;
+
+        self.send_text(msg).await;
+        while let Some(data) = receiver.recv().await {
+            match data {
+                crate::bot::ChannelItem::MessageEvent(event) => {
+                    return event.get_raw_message().to_string()
+                }
+                _ => {
+                    use colored::*;
+                    tracing::event!(
+                        tracing::Level::WARN,
+                        "{}",
+                        "Temp Matcher接受端接收到错误Api或Action消息".bright_red()
+                    );
+                } // 忽视 event 该 receiver 永不应该收到 event
+            }
+        }
+
+        "".to_string()
     }
 
     pub async fn send(&self, msg: Vec<crate::message::Message>) {

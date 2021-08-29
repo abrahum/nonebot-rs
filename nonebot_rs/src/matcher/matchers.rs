@@ -39,7 +39,7 @@ impl Matchers {
         {
             for (_, matcherh) in matcherb {
                 for (_, matcher) in matcherh {
-                    matcher.get_handler().on_bot_connect();
+                    matcher.get_handler().on_bot_connect(matcher.clone());
                 }
             }
         }

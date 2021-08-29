@@ -60,6 +60,38 @@ pub enum Api {
     SetGroupBan { params: SetGroupBan, echo: String },
 }
 
+macro_rules! echos {
+    ($($x: tt),*) => {
+    pub fn get_echo(&self) -> String {
+        match self {
+        $(Api::$x {
+            params: _,
+            echo: echo,
+            } => echo.clone(),
+        )*
+    }
+}
+    };
+}
+
+impl Api {
+    // Api::SendPrivateMsg {
+    //     params: _,
+    //     echo: echo,
+    // } => echo.clone(),
+    echos!(
+        SendPrivateMsg,
+        SendGroupMsg,
+        SendMsg,
+        DeleteMsg,
+        GetMsg,
+        GetForwardMsg,
+        SendLike,
+        SetGroupKick,
+        SetGroupBan
+    );
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SendPrivateMsg {
     pub user_id: i64,

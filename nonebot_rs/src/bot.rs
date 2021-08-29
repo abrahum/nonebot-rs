@@ -106,7 +106,9 @@ impl Bot {
                 message_event_matcher: mut matcher,
             } => {
                 if id == self.self_id {
-                    matcher.set_sender(self.sender.clone());
+                    if let None = matcher.get_sender() {
+                        matcher.set_sender(self.sender.clone());
+                    }
                     self.matchers.add_message_matcher(matcher.clone());
                     event!(
                         Level::DEBUG,

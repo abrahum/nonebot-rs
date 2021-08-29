@@ -1,8 +1,7 @@
 use crate::builtin;
-use crate::event::{MessageEvent, SelfId};
-use crate::matcher::build_temp_message_event_matcher;
+use crate::event::MessageEvent;
 use crate::matcher::{Handler, Matcher};
-use crate::{on_command, on_match_all};
+use crate::on_command;
 use async_trait::async_trait;
 use rcnb_rs::encode;
 
@@ -18,29 +17,8 @@ impl Handler<MessageEvent> for Rcnb {
             let msg = encode(&msg);
             matcher.send_text(&msg).await;
         } else {
-            // matcher_request! {{
-            //     let msg = event.get_raw_message();
-            //     matcher.send_text(&encode(&msg)).await;
-            // }}
-            // #[derive(Clone)]
-            struct Temp {}
-
-            #[async_trait]
-            impl Handler<MessageEvent> for Temp {
-                on_match_all!();
-                async fn handle(&self, event: MessageEvent, matcher: Matcher<MessageEvent>) {
-                    let msg = event.get_raw_message();
-                    matcher.send_text(&encode(&msg)).await;
-                }
-            }
-
-            matcher
-                .set_message_matcher(
-                    event.get_self_id(),
-                    build_temp_message_event_matcher(&event, Temp {}),
-                )
-                .await;
-            matcher.send_text("Please enter something.").await;
+            let msg = matcher.request_message("Please enter something.").await;
+            matcher.send_text(&encode(&msg)).await;
         }
     }
 }

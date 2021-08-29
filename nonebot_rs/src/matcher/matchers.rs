@@ -1,4 +1,4 @@
-use crate::bot::ApiSender;
+use crate::bot::{ApiRespWatcher, ApiSender};
 use crate::event;
 use crate::matcher::Matcher;
 use std::collections::{BTreeMap, HashMap};
@@ -103,22 +103,26 @@ impl Matchers {
         disable_matcher_(&mut self.meta, name, disable);
     }
 
-    pub fn set_sender(&mut self, sender: ApiSender) {
-        fn set_sender_<E>(matcherb: &mut MatchersBTreeMap<E>, sender: ApiSender)
-        where
+    pub fn set_sender(&mut self, sender: ApiSender, watcher: ApiRespWatcher) {
+        fn set_sender_<E>(
+            matcherb: &mut MatchersBTreeMap<E>,
+            sender: ApiSender,
+            watcher: ApiRespWatcher,
+        ) where
             E: Clone,
         {
             for (_, matcherh) in matcherb.iter_mut() {
                 for (_, matcher) in matcherh.iter_mut() {
                     matcher.set_sender(sender.clone());
+                    matcher.set_watcher(watcher.clone());
                 }
             }
         }
 
-        set_sender_(&mut self.message, sender.clone());
-        set_sender_(&mut self.notice, sender.clone());
-        set_sender_(&mut self.request, sender.clone());
-        set_sender_(&mut self.meta, sender.clone());
+        set_sender_(&mut self.message, sender.clone(), watcher.clone());
+        set_sender_(&mut self.notice, sender.clone(), watcher.clone());
+        set_sender_(&mut self.request, sender.clone(), watcher.clone());
+        set_sender_(&mut self.meta, sender.clone(), watcher.clone());
     }
 }
 

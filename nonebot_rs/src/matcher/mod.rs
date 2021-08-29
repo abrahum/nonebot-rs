@@ -1,4 +1,4 @@
-use crate::bot::{ApiSender, ChannelItem};
+use crate::bot::{ApiRespWatcher, ApiSender, ChannelItem};
 use crate::config::BotConfig;
 use crate::event::{MessageEvent, SelfId};
 use crate::utils::{later_timestamp, timestamp};
@@ -6,6 +6,7 @@ use crate::utils::{later_timestamp, timestamp};
 use async_trait::async_trait;
 use colored::*;
 use std::sync::Arc;
+use tokio::sync::watch::Receiver;
 use tracing::{event as tevent, Level};
 
 pub mod matchers;
@@ -26,6 +27,8 @@ where
     pub name: String,
     /// 消息发送接口
     sender: Option<ApiSender>,
+    /// Api 回执接受通道
+    watcher: Option<ApiRespWatcher>,
     /// Matcher 的匹配优先级
     pub priority: i8,
     /// 前处理函数组，获取 &mut event
@@ -69,8 +72,6 @@ pub trait Handler<E>
 where
     E: Clone,
 {
-    /// Nonebot 启动时，调用该函数
-    fn init(&mut self) {}
     /// 新 Bot 连接时，调用该函数
     fn on_bot_connect(&self) {}
     /// 匹配函数
@@ -101,15 +102,15 @@ where
     ///     event: None,
     /// }
     /// ```
-    pub fn new<H>(name: String, mut handler: H) -> Matcher<E>
+    pub fn new<H>(name: String, handler: H) -> Matcher<E>
     where
         H: Handler<E> + Sync + Send + 'static,
     {
         // 默认 Matcher
-        handler.init();
         Matcher {
             name: name,
             sender: None,
+            watcher: None,
             priority: 1,
             pre_matchers: vec![],
             // after_matchers: vec![],
@@ -153,7 +154,7 @@ where
         let mut event = event.clone();
         if let Some(timeout) = self.timeout {
             if timestamp() > timeout {
-                self.set(crate::bot::Setter::RemoveMatcher {
+                self.set(crate::bot::Action::RemoveMatcher {
                     bot_id: event.get_self_id(),
                     name: self.name.clone(),
                 })
@@ -176,27 +177,26 @@ where
         return true;
     }
 
-    pub async fn call_api(&self, api: crate::api::Apis) {
+    pub async fn call_api(&self, api: crate::api::Api) {
         self.sender
             .clone()
             .unwrap()
-            .send(ChannelItem::Apis(api))
+            .send(ChannelItem::Api(api))
             .await
             .unwrap();
     }
 
-    pub async fn set(&self, set: crate::bot::Setter) {
+    pub async fn set(&self, set: crate::bot::Action) {
         self.sender
             .clone()
             .unwrap()
-            .send(ChannelItem::Setter(set))
+            .send(ChannelItem::Action(set))
             .await
             .unwrap();
     }
 
     pub async fn set_message_matcher(&self, bot_id: String, matcher: Matcher<MessageEvent>) {
-        use crate::bot::Setter;
-        let set = Setter::AddMessageEventMatcher {
+        let set = crate::bot::Action::AddMessageEventMatcher {
             bot_id: bot_id,
             message_event_matcher: matcher,
         };
@@ -244,6 +244,11 @@ where
 {
     pub fn set_sender(&mut self, sender: ApiSender) -> Matcher<E> {
         self.sender = Some(sender);
+        self.clone()
+    }
+
+    pub fn set_watcher(&mut self, watcher: ApiRespWatcher) -> Matcher<E> {
+        self.watcher = Some(watcher);
         self.clone()
     }
 
@@ -333,7 +338,7 @@ impl Matcher<MessageEvent> {
                     .sender
                     .clone()
                     .unwrap()
-                    .send(ChannelItem::Apis(crate::api::Apis::SendPrivateMsg {
+                    .send(ChannelItem::Api(crate::api::Api::SendPrivateMsg {
                         params: crate::api::SendPrivateMsg {
                             user_id: p.user_id,
                             message: msg,
@@ -355,7 +360,7 @@ impl Matcher<MessageEvent> {
                 self.sender
                     .clone()
                     .unwrap()
-                    .send(ChannelItem::Apis(crate::api::Apis::SendGroupMsg {
+                    .send(ChannelItem::Api(crate::api::Api::SendGroupMsg {
                         params: crate::api::SendGroupMsg {
                             group_id: g.group_id,
                             message: msg,

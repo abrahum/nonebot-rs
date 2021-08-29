@@ -37,9 +37,13 @@ mod utils;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
+#[doc(inline)]
+pub use api::Api;
 pub use async_trait::async_trait;
 #[doc(inline)]
 pub use matcher::matchers::{Matchers, MatchersBTreeMap, MatchersHashMap};
+#[doc(inline)]
+pub use message::Message;
 
 #[macro_use]
 extern crate lazy_static;

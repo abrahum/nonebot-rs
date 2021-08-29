@@ -1,4 +1,4 @@
-use crate::bot::{Bot, ChannelItem, Setter};
+use crate::bot::{Action, Bot, ChannelItem};
 use crate::Nonebot;
 use axum::{
     extract::TypedHeader,
@@ -21,7 +21,7 @@ pub async fn run(nb_arc: Arc<Mutex<Nonebot>>) {
         host = nb.config.global.host;
         port = nb.config.global.port;
     }
-    let (broadcaster, _) = broadcast::channel::<Setter>(32);
+    let (broadcaster, _) = broadcast::channel::<Action>(32);
     let handle_socket =
         |socket: WebSocket,
          x_self_id: Option<TypedHeader<xheaders::XSelfId>>,
@@ -89,7 +89,7 @@ async fn handle_socket(
     mut bot: Bot,
     socket: WebSocket,
     mut receiver: mpsc::Receiver<ChannelItem>,
-    broadcaster: broadcast::Sender<Setter>,
+    broadcaster: broadcast::Sender<Action>,
 ) {
     // 将 websocket 接收流与发送流分离
     let (mut sink, mut stream) = socket.split();
@@ -105,15 +105,23 @@ async fn handle_socket(
     let outcome = async move {
         while let Some(data) = receiver.recv().await {
             match data {
-                ChannelItem::Apis(data) => {
+                ChannelItem::Api(data) => {
                     let json_string = serde_json::to_string(&data).unwrap();
                     sink.send(axum::ws::Message::text(json_string))
                         .await
                         .unwrap();
                 }
-                ChannelItem::Setter(set) => {
-                    broadcaster.send(set).unwrap();
+                ChannelItem::Action(action) => {
+                    broadcaster.send(action).unwrap();
                 }
+                _ => {
+                    use colored::*;
+                    tracing::event!(
+                        tracing::Level::WARN,
+                        "{}",
+                        "WedSocket接受端接收到错误Event消息".bright_red()
+                    );
+                } // 忽视 event 该 receiver 永不应该收到 event
             }
         }
     };

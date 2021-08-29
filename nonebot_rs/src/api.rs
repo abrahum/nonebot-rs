@@ -10,7 +10,7 @@ pub struct ApiResp {
 }
 
 /// Onebot Api 响应 data 字段
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct RespData {
     pub message_id: Option<i32>,
     pub time: Option<i32>,
@@ -36,7 +36,7 @@ pub struct Sender {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "action")]
-pub enum Apis {
+pub enum Api {
     #[serde(rename = "send_private_msg")]
     SendPrivateMsg {
         params: SendPrivateMsg,

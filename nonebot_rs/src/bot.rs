@@ -1,22 +1,25 @@
-use crate::api::Apis;
+use crate::api::Api;
 use crate::builtin;
 use crate::config::BotConfig;
 use crate::event::{Events, SelfId};
 use crate::log::log_load_matchers;
 use crate::{Matchers, Nonebot};
 use std::sync::{Arc, Mutex};
-use tokio::sync::{broadcast::Receiver, mpsc::Sender};
+use tokio::sync::{broadcast::Receiver, mpsc::Sender, watch};
 use tracing::{event, Level};
 
 /// 发送 Api 请求的 mpsc channel sender
 pub type ApiSender = Sender<ChannelItem>;
+pub type ApiRespWatcher = watch::Receiver<crate::api::ApiResp>;
 
 /// Bot 运行实例
 pub struct Bot {
     self_id: String, // bot ID
-    listener: Receiver<Setter>,
+    listener: Receiver<Action>,
     // amnb: Arc<Mutex<Nonebot>>, // Nonebot
-    sender: ApiSender,  // channel sender
+    sender: ApiSender, // channel sender
+    /// 广播 Api 调用后回执
+    broadcaster: watch::Sender<crate::api::ApiResp>,
     matchers: Matchers, // Bot Matchers
     config: BotConfig,  // Bot config
 }
@@ -27,7 +30,7 @@ impl Bot {
         id: i64,
         authorization: Option<String>,
         sender: ApiSender,
-        listener: Receiver<Setter>,
+        listener: Receiver<Action>,
         amnb: Arc<Mutex<Nonebot>>,
     ) -> Result<Self, String> {
         Bot::check_auth(authorization, amnb.clone())?;
@@ -54,12 +57,19 @@ impl Bot {
                 }
             }
         }
-        matchers.set_sender(sender.clone());
+        let (bc_sender, watcher) = watch::channel(crate::api::ApiResp {
+            status: "Init".to_string(),
+            retcode: 0,
+            data: crate::api::RespData::default(),
+            echo: "".to_string(),
+        });
+        matchers.set_sender(sender.clone(), watcher.clone());
         let bot = Bot {
             self_id: id.to_string(),
             listener: listener,
             // amnb: amnb,
             sender: sender,
+            broadcaster: bc_sender,
             matchers: matchers,
             config: config,
         };
@@ -89,9 +99,9 @@ impl Bot {
     }
 
     /// 接收 Setter 并处理
-    fn handle_setter(&mut self, set: Setter) {
+    fn handle_setter(&mut self, set: Action) {
         match set {
-            Setter::AddMessageEventMatcher {
+            Action::AddMessageEventMatcher {
                 bot_id: id,
                 message_event_matcher: mut matcher,
             } => {
@@ -106,7 +116,7 @@ impl Bot {
                     );
                 }
             }
-            Setter::RemoveMatcher {
+            Action::RemoveMatcher {
                 bot_id: id,
                 name: matcher_name,
             } => {
@@ -120,7 +130,7 @@ impl Bot {
                     );
                 }
             }
-            Setter::DisableMatcher {
+            Action::DisableMatcher {
                 bot_id: id,
                 name: matcher_name,
             } => {
@@ -134,7 +144,7 @@ impl Bot {
                     );
                 }
             }
-            Setter::EnableMatcher {
+            Action::EnableMatcher {
                 bot_id: id,
                 name: matcher_name,
             } => {
@@ -182,7 +192,8 @@ impl Bot {
         event!(Level::DEBUG, "handling resp {}", resp);
         // 处理 Api 调用回执
         let resp: crate::api::ApiResp = serde_json::from_str(&resp).unwrap();
-        builtin::resp_logger(resp).await;
+        builtin::resp_logger(&resp);
+        self.broadcaster.send(resp).unwrap();
     }
 
     /// 接收按类型分发后的 Event 逐级匹配 Matcher
@@ -223,7 +234,7 @@ impl Bot {
             }
             if matched && matcher.is_temp() {
                 matcher
-                    .set(Setter::RemoveMatcher {
+                    .set(Action::RemoveMatcher {
                         bot_id: bot_id.clone(),
                         name: matcher.name.clone(),
                     })
@@ -246,17 +257,21 @@ pub enum ChannelItem {
     /// Bot 内部设置项
     ///
     /// 接收后会由 broadcaster 分发给所有 Bot
-    Setter(Setter),
+    Action(Action),
     /// Onebot Api
-    Apis(Apis),
+    Api(Api),
+    /// Event 用于临时 Matcher 与原 Matcher 传递事件 todo
+    MessageEvent(crate::event::MessageEvent),
 }
 
 /// Bot 内部设置项
 #[derive(Debug, Clone)]
-pub enum Setter {
+pub enum Action {
     /// 移除 Matcher
     RemoveMatcher { bot_id: String, name: String },
     /// 添加 Matcher<MessageEvent>
+    ///
+    /// 当存在同名 Matcher 时，将会替代旧 Matcher
     AddMessageEventMatcher {
         bot_id: String,
         message_event_matcher: crate::matcher::Matcher<crate::event::MessageEvent>,

@@ -46,8 +46,7 @@ impl Handler<MessageEvent> for Rcnb {
 }
 
 pub fn rcnb() -> Matcher<MessageEvent> {
-    use std::sync::Arc;
     Matcher::new("Rcnb".to_string(), Rcnb {})
         .add_pre_matcher(builtin::prematcher::to_me())
-        .add_pre_matcher(Arc::new(builtin::prematcher::command_start))
+        .add_pre_matcher(builtin::prematcher::command_start())
 }

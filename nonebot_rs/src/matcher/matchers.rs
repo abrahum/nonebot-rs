@@ -67,6 +67,16 @@ impl Matchers {
         self
     }
 
+    pub fn add_message_matchers(
+        &mut self,
+        matchers: Vec<Matcher<event::MessageEvent>>,
+    ) -> &mut Self {
+        for m in matchers {
+            self.add_message_matcher(m);
+        }
+        self
+    }
+
     pub fn remove_matcher(&mut self, name: &str) {
         fn remove_matcher_<E>(matcherb: &mut MatchersBTreeMap<E>, name: &str)
         where

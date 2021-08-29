@@ -31,6 +31,7 @@ mod log;
 pub mod matcher;
 /// Onebot 消息接口定义
 pub mod message;
+pub mod plugin;
 mod results;
 mod utils;
 

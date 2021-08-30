@@ -40,23 +40,7 @@ impl Bot {
         {
             let nb = amnb.lock().unwrap();
             matchers = nb.matchers.clone();
-            if let Some(bots_config) = &nb.config.bots {
-                if let Some(bot_config) = bots_config.get(&id.to_string()) {
-                    config = bot_config.clone();
-                } else {
-                    config = BotConfig {
-                        superusers: nb.config.global.superusers.clone(),
-                        nickname: nb.config.global.nickname.clone(),
-                        command_start: nb.config.global.command_start.clone(),
-                    }
-                }
-            } else {
-                config = BotConfig {
-                    superusers: nb.config.global.superusers.clone(),
-                    nickname: nb.config.global.nickname.clone(),
-                    command_start: nb.config.global.command_start.clone(),
-                }
-            }
+            config = nb.config.gen_bot_config(&id.to_string());
         }
         let (bc_sender, watcher) = watch::channel(ApiResp {
             status: "Init".to_string(),

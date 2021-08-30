@@ -11,13 +11,18 @@ pub type MatchersHashMap<E> = HashMap<String, Matcher<E>>;
 /// 根据 `Event` 类型分类存储对应的 `Matcher`
 #[derive(Clone, Debug)]
 pub struct Matchers {
+    /// MessageEvent 对应 MatcherBTreeMap
     pub message: MatchersBTreeMap<event::MessageEvent>,
+    /// NoticeEvent 对应 MatcherBTreeMap
     pub notice: MatchersBTreeMap<event::NoticeEvent>,
+    /// RequestEvent 对应 MatcherBTreeMap
     pub request: MatchersBTreeMap<event::RequestEvent>,
+    /// MetaEvent 对应 MatcherBTreeMap
     pub meta: MatchersBTreeMap<event::MetaEvent>,
 }
 
 impl Matchers {
+    /// 新建 Matchers
     pub fn new(
         message: Option<MatchersBTreeMap<event::MessageEvent>>,
         notice: Option<MatchersBTreeMap<event::NoticeEvent>>,
@@ -32,6 +37,7 @@ impl Matchers {
         }
     }
 
+    /// Bot 连接时运行所有 Matcher on_bot_connect 方法
     pub fn run_on_connect(&self) {
         fn run_on_connect_<E>(matcherb: &MatchersBTreeMap<E>)
         where
@@ -50,6 +56,7 @@ impl Matchers {
         run_on_connect_(&self.meta);
     }
 
+    /// 向 Matchers 添加 Matcher<MessageEvent>
     pub fn add_message_matcher(&mut self, matcher: Matcher<event::MessageEvent>) -> &mut Self {
         match self.message.get(&matcher.priority) {
             Some(_) => {
@@ -67,6 +74,7 @@ impl Matchers {
         self
     }
 
+    /// 向 Matchers 添加 Vec<Matcher<MessageEvent>>
     pub fn add_message_matchers(
         &mut self,
         matchers: Vec<Matcher<event::MessageEvent>>,
@@ -77,6 +85,7 @@ impl Matchers {
         self
     }
 
+    /// 根据 Matcher.name 从 Matchers 移除 Matcher
     pub fn remove_matcher(&mut self, name: &str) {
         fn remove_matcher_<E>(matcherb: &mut MatchersBTreeMap<E>, name: &str)
         where
@@ -95,6 +104,7 @@ impl Matchers {
         remove_matcher_(&mut self.meta, name);
     }
 
+    /// 根据 Matcher.name disable Matcher
     pub fn disable_matcher(&mut self, name: &str, disable: bool) {
         fn disable_matcher_<E>(matcherb: &mut MatchersBTreeMap<E>, name: &str, disable: bool)
         where
@@ -113,6 +123,7 @@ impl Matchers {
         disable_matcher_(&mut self.meta, name, disable);
     }
 
+    /// 设置 Matchers 中所有 Matcher 的 sender && watcher
     pub fn set_sender(&mut self, sender: ApiSender, watcher: ApiRespWatcher) {
         fn set_sender_<E>(
             matcherb: &mut MatchersBTreeMap<E>,

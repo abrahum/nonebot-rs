@@ -29,7 +29,7 @@ where
     /// Api 回执接受通道
     watcher: Option<ApiRespWatcher>,
     /// Matcher 的匹配优先级
-    pub priority: i8,
+    priority: i8,
     /// 前处理函数组，获取 &mut event
     pre_matchers: Vec<Arc<PreMatcher<E>>>,
     /// rule 组
@@ -127,6 +127,7 @@ where
         }
     }
 
+    #[doc(hidden)]
     fn pre_matcher_handle(&self, event: &mut E, config: BotConfig) -> bool {
         // 遍历 pre_matcher 处理
         for premather in &self.pre_matchers {
@@ -137,6 +138,7 @@ where
         true
     }
 
+    #[doc(hidden)]
     fn check_rules(&self, event: &E, config: &BotConfig) -> bool {
         // 一次性检查当前事件是否满足所有 Rule
         // check the event fit all the rules or not
@@ -148,6 +150,7 @@ where
         true
     }
 
+    #[doc(hidden)]
     pub async fn match_(&self, event: E, config: BotConfig) -> bool
     where
         E: Send + 'static + SelfId,
@@ -180,6 +183,7 @@ where
         return true;
     }
 
+    /// 发送 nbrs 内部设置 Action
     pub async fn set(&self, set: crate::bot::Action) {
         self.sender
             .clone()
@@ -189,6 +193,7 @@ where
             .unwrap();
     }
 
+    /// 向指定 bot_id 添加 Matcher<MessageEvent>
     pub async fn set_message_matcher(&self, bot_id: String, matcher: Matcher<MessageEvent>) {
         let set = crate::bot::Action::AddMessageEventMatcher {
             bot_id: bot_id,
@@ -198,6 +203,7 @@ where
     }
 }
 
+/// 构建 timeout 为 30s 的临时 Matcher<MessageEvent>
 pub fn build_temp_message_event_matcher<H>(
     event: &MessageEvent,
     handler: H,

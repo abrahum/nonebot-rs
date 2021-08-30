@@ -77,7 +77,7 @@ nickname = ["nickname"]
 command_start = ["/"]
 ```
 
-global 设置对每个未指定 bot 都有效，当在 global 外特别设置一个 bot 后，所有 global 设置对该 bot 全部失效(包括未指定项，当然应该也会报错)
+global 设置对每个未指定 bot 都有效，~~当在 global 外特别设置一个 bot 后，所有 global 设置对该 bot 全部失效~~ 可以仅指定部分属性。
 
 最小实例请看 nonebot_rs/bin/minimal.rs ，matcher 等等声明请看 builtin 中各项(锐意迭代中)。
 

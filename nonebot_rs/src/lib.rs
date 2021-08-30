@@ -82,8 +82,8 @@ impl Nonebot {
                     Bot {
                         sender: None,
                         superusers: bot_config.superusers.clone(),
-                        nickname: bot_config.nickname.clone(),
-                        command_start: bot_config.command_start.clone(),
+                        nickname: bot_config.nicknames.clone(),
+                        command_start: bot_config.command_starts.clone(),
                     },
                 );
             }
@@ -102,8 +102,8 @@ impl Nonebot {
                 Bot {
                     sender: Some(sender),
                     superusers: self.config.global.superusers.clone(),
-                    nickname: self.config.global.nickname.clone(),
-                    command_start: self.config.global.command_start.clone(),
+                    nickname: self.config.global.nicknames.clone(),
+                    command_start: self.config.global.command_starts.clone(),
                 },
             );
         }

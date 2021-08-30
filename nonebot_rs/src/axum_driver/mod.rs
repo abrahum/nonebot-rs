@@ -114,12 +114,20 @@ async fn handle_socket(
                 ChannelItem::Action(action) => {
                     broadcaster.send(action).unwrap();
                 }
-                _ => {
+                ChannelItem::MessageEvent(_) => {
                     use colored::*;
                     tracing::event!(
                         tracing::Level::WARN,
                         "{}",
                         "WedSocket接受端接收到错误Event消息".bright_red()
+                    );
+                }
+                ChannelItem::TimeOut => {
+                    use colored::*;
+                    tracing::event!(
+                        tracing::Level::WARN,
+                        "{}",
+                        "WedSocket接受端接收到错误TimeOut消息".bright_red()
                     );
                 } // 忽视 event 该 receiver 永不应该收到 event
             }

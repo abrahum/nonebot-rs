@@ -264,6 +264,8 @@ pub enum ChannelItem {
     Api(Api),
     /// Event 用于临时 Matcher 与原 Matcher 传递事件 todo
     MessageEvent(crate::event::MessageEvent),
+    /// Timeout
+    TimeOut,
 }
 
 /// Bot 内部设置项

@@ -18,7 +18,9 @@ impl Handler<MessageEvent> for Rcnb {
             matcher.send_text(&msg).await;
         } else {
             let msg = matcher.request_message("Please enter something.").await;
-            matcher.send_text(&encode(&msg)).await;
+            if let Some(msg) = msg {
+                matcher.send_text(&encode(&msg)).await;
+            }
         }
     }
 }

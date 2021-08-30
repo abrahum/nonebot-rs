@@ -7,16 +7,9 @@ pub fn remove_space(s: &str) -> String {
     rstring
 }
 
-use chrono::{Duration, Local};
+use chrono::Local;
 
 pub fn timestamp() -> i64 {
     let time = Local::now();
-    time.timestamp()
-}
-
-pub fn later_timestamp(sec: i64) -> i64 {
-    let now = Local::now();
-    let dur = Duration::seconds(sec);
-    let time = now + dur;
     time.timestamp()
 }

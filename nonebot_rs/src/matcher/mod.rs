@@ -73,6 +73,8 @@ where
 {
     /// 新 Bot 连接时，调用该函数
     fn on_bot_connect(&self, _: Matcher<E>) {}
+    /// timeout drop 函数
+    fn timeout_drop(&self, _: &Matcher<E>) {}
     /// 匹配函数
     fn match_(&self, event: &mut E) -> bool;
     /// 处理函数
@@ -158,6 +160,7 @@ where
                     name: self.name.clone(),
                 })
                 .await;
+                self.handler.timeout_drop(&self);
                 return false;
             }
         }
@@ -232,7 +235,9 @@ where
     } else {
         m.add_rule(crate::builtin::rules::is_private_message_event());
     }
-    m.set_priority(0).set_temp(true)
+    m.set_priority(0)
+        .set_temp(true)
+        .set_timeout(timestamp() + 30)
 }
 
 impl<E> Matcher<E>
@@ -346,7 +351,7 @@ impl Matcher<MessageEvent> {
         self.send(vec![msg]).await;
     }
 
-    pub async fn request_message(&self, msg: &str) -> String {
+    pub async fn request_message(&self, msg: &str) -> Option<String> {
         struct Temp {}
 
         #[async_trait]
@@ -360,6 +365,13 @@ impl Matcher<MessageEvent> {
                     .send(crate::bot::ChannelItem::MessageEvent(event))
                     .await
                     .unwrap();
+            }
+
+            fn timeout_drop(&self, matcher: &Matcher<MessageEvent>) {
+                let sender = matcher.sender.clone().unwrap();
+                tokio::spawn(async move {
+                    sender.send(crate::bot::ChannelItem::TimeOut).await.unwrap()
+                });
             }
         }
 
@@ -375,8 +387,16 @@ impl Matcher<MessageEvent> {
         while let Some(data) = receiver.recv().await {
             match data {
                 crate::bot::ChannelItem::MessageEvent(event) => {
-                    return event.get_raw_message().to_string()
+                    let msg = crate::utils::remove_space(event.get_raw_message());
+                    if msg.is_empty() {
+                        return None;
+                    } else {
+                        return Some(msg);
+                    }
                 }
+                crate::bot::ChannelItem::TimeOut => return None,
+                // 中转 temp Matcher 的 Remove Action
+                crate::bot::ChannelItem::Action(action) => self.set(action).await,
                 _ => {
                     use colored::*;
                     tracing::event!(
@@ -388,7 +408,7 @@ impl Matcher<MessageEvent> {
             }
         }
 
-        "".to_string()
+        None
     }
 
     pub async fn send(&self, msg: Vec<crate::message::Message>) {

@@ -5,9 +5,11 @@ use crate::on_command;
 use async_trait::async_trait;
 use rcnb_rs::encode;
 
+#[doc(hidden)]
 #[derive(Clone)]
 pub struct Rcnb {}
 
+#[doc(hidden)]
 #[async_trait]
 impl Handler<MessageEvent> for Rcnb {
     on_command!(MessageEvent, "rcnb", "RCNB", "Rcnb");
@@ -21,8 +23,9 @@ impl Handler<MessageEvent> for Rcnb {
     }
 }
 
+/// rcnb！！！
 pub fn rcnb() -> Matcher<MessageEvent> {
     Matcher::new("Rcnb", Rcnb {})
-        .add_pre_matcher(builtin::prematcher::to_me())
-        .add_pre_matcher(builtin::prematcher::command_start())
+        .add_pre_matcher(builtin::prematchers::to_me())
+        .add_pre_matcher(builtin::prematchers::command_start())
 }

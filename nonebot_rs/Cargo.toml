@@ -1,6 +1,9 @@
 [package]
 name = "nonebot_rs"
 license = "MIT"
+description = "A Onebot SDK in Rust"
+homepage = "https://github.com/abrahum/nonebot-rs"
+authors = ["Abrahum Link<307887491@qq.com>"]
 version = "0.1.0"
 edition = "2018"
 

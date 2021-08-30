@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+/// Onebot Api 定义
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "action")]
 pub enum Api {

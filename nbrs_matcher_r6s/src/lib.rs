@@ -1,4 +1,4 @@
-use nonebot_rs::builtin::prematcher::*;
+use nonebot_rs::builtin::prematchers::*;
 use nonebot_rs::event::MessageEvent;
 use nonebot_rs::matcher::Matcher;
 use reqwest::{header::HeaderMap, Client};

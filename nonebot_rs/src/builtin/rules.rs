@@ -4,6 +4,7 @@ use crate::event::UserId;
 use crate::matcher::Rule;
 use std::sync::Arc;
 
+/// 判定 sender 是否为 superuser
 pub fn is_superuser<E>() -> Rule<E>
 where
     E: UserId,
@@ -20,6 +21,7 @@ where
     Arc::new(is_superuser)
 }
 
+/// 判定 sender 是否为指定 user
 pub fn is_user<E>(user_id: String) -> Rule<E>
 where
     E: UserId,
@@ -34,6 +36,7 @@ where
     Arc::new(is_user)
 }
 
+/// 判定 event 是否来自指定 group
 pub fn in_group(group_id: i64) -> Rule<MessageEvent> {
     let in_group = move |event: &MessageEvent, _: &BotConfig| -> bool {
         if let MessageEvent::Group(g) = event {
@@ -46,6 +49,7 @@ pub fn in_group(group_id: i64) -> Rule<MessageEvent> {
     Arc::new(in_group)
 }
 
+/// 判定 event 是否为私聊消息事件
 pub fn is_private_message_event() -> Rule<MessageEvent> {
     let is_private_message_event = |event: &MessageEvent, _: &BotConfig| -> bool {
         match event {

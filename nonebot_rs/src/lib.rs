@@ -16,23 +16,99 @@
 //! 收到 WebSocket 连接后，将新建一个 Bot 实例，接受 Event 后，由 Bot 负责逐渐匹配分发
 //! 到各个 Matcher ，Matcher 处理后，通过 channel 将数据传递回 WebSocket 发送。每个
 //! Event 的匹配与 Matcher 的处理均为独立协程，以此提高并发性能。
+//!
+//! # Nonebotrs.toml
+//!
+//! 当第一次运行 nbrs 时将会自动创建 Nonebotrs.toml 配置文件。
+//!
+//! ```toml
+//! [global]                 // 全局设置
+//! host = "127.0.0.1"       // 监听 host
+//! port = 8088              // 监听 port
+//! debug = true             // 开启 debug log
+//! superusers = ["YourID"]  // 全局管理员账号
+//! nicknames = ["nickname"] // 全局 Bot 昵称
+//! command_starts = ["/"]   // 全局命令起始符
+//!
+//! [bots.BotID]             // Bot 设置
+//! superusers = ["YourID"]  // 管理员账户
+//! nicknames = ["nickname"] // Bot 昵称
+//! command_starts = ["/"]   // 命令起始符
+//! ```
+//!
+//! # Examples
+//!
+//! 最小运行实例：
+//!
+//! ```rust
+//! fn main() {
+//!     let mut nb = nonebot_rs::Nonebot::new(); // 新建 Nonebot
+//!     nb.matchers
+//!         .add_message_matcher(nonebot_rs::builtin::echo::echo())  // 注册 echo Matcher
+//!         .add_message_matcher(nonebot_rs::builtin::rcnb::rcnb()); // 注册 rcnb Matcher
+//!     nb.run()                                                     // 运行 Nonebot
+//! }
+//! ```
+//!
+//! Matcher 开发：
+//!
+//! ```rust
+//! use nonebot_rs::builtin;
+//! use nonebot_rs::event::MessageEvent;
+//! use nonebot_rs::matcher::{Handler, Matcher};
+//! use nonebot_rs::on_command;
+//! use nonebot_rs::async_trait;
+//! use rcnb_rs::encode;
+//!
+//! #[derive(Clone)]   // handler struct 需要生成 Clone trait
+//! pub struct Rcnb {} // 定义 handler struct，可以在该结构体容纳静态数据
+//!
+//! #[async_trait]
+//! impl Handler<MessageEvent> for Rcnb {
+//!     on_command!(MessageEvent, "rcnb", "RCNB", "Rcnb"); // 注册该 Matcher 的命令匹配器
+//!     async fn handle(&self, event: MessageEvent, matcher: Matcher<MessageEvent>) {
+//!         // 请求获取 msg，event raw_message 为空则发送消息请求消息
+//!         let msg = matcher
+//!             .request_message(Some(&event), Some("Please enter something."))
+//!             .await;
+//!         // 再次获取消息依然为空将返回 None
+//!         if let Some(msg) = msg {
+//!             // 发送处理后的消息
+//!             matcher.send_text(&encode(&msg)).await;
+//!         }
+//!     }
+//! }
+//!
+//! // Matcher 的构建函数
+//! pub fn rcnb() -> Matcher<MessageEvent> {
+//!     Matcher::new("Rcnb", Rcnb {}) // 声明 Matcher 的 name 与 handler struct
+//!         .add_pre_matcher(builtin::prematchers::to_me())         // 添加 to_me prematcher
+//!         .add_pre_matcher(builtin::prematchers::command_start()) // 添加 command_start permatcher
+//! }
+//! ```
 
 /////////////////////////////////////////////////////////////////////////////////
 
+#[doc(hidden)]
 pub mod api;
+#[doc(hidden)]
 pub mod api_resp;
+#[doc(hidden)]
 pub mod axum_driver;
+/// Bot 结构体定义   
 pub mod bot;
 /// 内建组件
 pub mod builtin;
+/// nbrs 设置项
 pub mod config;
+/// Onebot 事件
 pub mod event;
 mod log;
 /// Matcher 定义
 pub mod matcher;
-/// Onebot 消息接口定义
+#[doc(hidden)]
 pub mod message;
-pub mod plugin;
+mod plugin;
 mod results;
 mod utils;
 
@@ -41,6 +117,8 @@ use std::sync::{Arc, Mutex};
 
 #[doc(inline)]
 pub use api::Api;
+#[doc(inline)]
+pub use api_resp::ApiResp;
 pub use async_trait::async_trait;
 #[doc(inline)]
 pub use matcher::matchers::{Matchers, MatchersBTreeMap, MatchersHashMap};

@@ -5,12 +5,18 @@ use crate::utils::timestamp;
 use async_trait::async_trait;
 use std::sync::Arc;
 
+#[doc(hidden)]
 pub mod api;
+#[doc(hidden)]
 pub mod matchers;
+#[doc(hidden)]
 pub mod message_event_matcher;
+#[doc(hidden)]
 pub mod set_get;
 
+/// rule 函数类型
 pub type Rule<E> = Arc<dyn Fn(&E, &BotConfig) -> bool + Send + Sync>;
+/// permatcher 函数类型
 pub type PreMatcher<E> = fn(&mut E, BotConfig) -> bool;
 // pub type AfterMatcher<E> = fn(&mut E, BotConfig) -> AfterMatcherResult;
 

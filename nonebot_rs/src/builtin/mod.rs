@@ -1,8 +1,12 @@
-pub mod aftermatcher;
+/// 内建 echo Matcher
 pub mod echo;
+#[doc(hidden)]
 pub mod macros;
-pub mod prematcher;
+/// 内建 PreMatcher 函数
+pub mod prematchers;
+/// rcnb！！！
 pub mod rcnb;
+/// 内建 rules
 pub mod rules;
 
 use crate::event::{MessageEvent, MetaEvent};
@@ -10,6 +14,7 @@ use crate::results::HandlerResult;
 use colored::*;
 use tracing::{event, Level};
 
+#[doc(hidden)]
 pub async fn logger(event: &MessageEvent) -> HandlerResult {
     match &event {
         MessageEvent::Private(p) => {
@@ -46,6 +51,7 @@ pub async fn logger(event: &MessageEvent) -> HandlerResult {
     Ok(true)
 }
 
+#[doc(hidden)]
 pub fn resp_logger(resp: &crate::api_resp::ApiResp) {
     if &resp.status == "ok" {
         event!(Level::DEBUG, "{} success", resp.echo);
@@ -54,6 +60,7 @@ pub fn resp_logger(resp: &crate::api_resp::ApiResp) {
     }
 }
 
+#[doc(hidden)]
 pub async fn metahandle(event: &MetaEvent) {
     if &event.meta_event_type == "heartbeat" {
         event!(Level::TRACE, "Recive HeartBeat")

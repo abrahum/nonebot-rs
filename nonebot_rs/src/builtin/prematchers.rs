@@ -5,6 +5,7 @@ use crate::message::Message;
 use crate::utils::remove_space;
 use std::sync::Arc;
 
+/// 判定消息是否提及 bot（私聊，at，昵称）
 pub fn to_me() -> Arc<PreMatcher<MessageEvent>> {
     let to_me = |e: &mut MessageEvent, config: BotConfig| -> bool {
         match e {
@@ -39,6 +40,7 @@ pub fn to_me() -> Arc<PreMatcher<MessageEvent>> {
     Arc::new(to_me)
 }
 
+#[doc(hidden)]
 fn command_start_(event: &mut MessageEvent, config: BotConfig) -> bool {
     let raw_message = remove_space(&event.get_raw_message());
     let command_starts = config.command_starts;
@@ -55,6 +57,7 @@ fn command_start_(event: &mut MessageEvent, config: BotConfig) -> bool {
     false
 }
 
+/// 判定消息是否符合命令起始符
 pub fn command_start() -> Arc<PreMatcher<MessageEvent>> {
     Arc::new(command_start_)
 }

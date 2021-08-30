@@ -5,9 +5,11 @@ use crate::message::Message;
 use crate::on_command;
 use async_trait::async_trait;
 
+#[doc(hidden)]
 #[derive(Clone)]
 pub struct Echo {}
 
+#[doc(hidden)]
 #[async_trait]
 impl Handler<MessageEvent> for Echo {
     on_command!(MessageEvent, "echo", "Echo");
@@ -19,15 +21,18 @@ impl Handler<MessageEvent> for Echo {
     }
 }
 
+/// 单次复读 Matcher
 pub fn echo() -> Matcher<MessageEvent> {
     Matcher::new("Echo", Echo {})
-        .add_pre_matcher(builtin::prematcher::to_me())
-        .add_pre_matcher(builtin::prematcher::command_start())
+        .add_pre_matcher(builtin::prematchers::to_me())
+        .add_pre_matcher(builtin::prematchers::command_start())
 }
 
+#[doc(hidden)]
 #[derive(Clone)]
 pub struct Echo2 {}
 
+#[doc(hidden)]
 #[async_trait]
 impl Handler<MessageEvent> for Echo2 {
     on_command!(MessageEvent, "echo mode", "Echo Mode");
@@ -48,8 +53,9 @@ impl Handler<MessageEvent> for Echo2 {
     }
 }
 
+/// 无限复读 Matcher
 pub fn echo2() -> Matcher<MessageEvent> {
     Matcher::new("Echo2", Echo2 {})
-        .add_pre_matcher(builtin::prematcher::to_me())
-        .add_pre_matcher(builtin::prematcher::command_start())
+        .add_pre_matcher(builtin::prematchers::to_me())
+        .add_pre_matcher(builtin::prematchers::command_start())
 }

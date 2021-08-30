@@ -46,7 +46,7 @@ pub async fn logger(event: &MessageEvent) -> HandlerResult {
     Ok(true)
 }
 
-pub fn resp_logger(resp: &crate::api::ApiResp) {
+pub fn resp_logger(resp: &crate::api_resp::ApiResp) {
     if &resp.status == "ok" {
         event!(Level::DEBUG, "{} success", resp.echo);
     } else {

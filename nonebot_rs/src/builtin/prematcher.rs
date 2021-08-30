@@ -22,6 +22,9 @@ pub fn to_me() -> Arc<PreMatcher<MessageEvent>> {
                     match message {
                         Message::At { qq: qq_id } => {
                             if qq_id == &bot_id {
+                                g.raw_message = remove_space(
+                                    &raw_message.replace(&format!("[CQ:at,qq={}]", g.self_id), ""),
+                                );
                                 return true;
                             }
                         }

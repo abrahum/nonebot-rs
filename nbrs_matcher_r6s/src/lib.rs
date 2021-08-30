@@ -7,6 +7,7 @@ use std::sync::Arc;
 mod base;
 mod plays;
 mod pro;
+mod set;
 mod utils;
 
 pub fn r6s() -> Vec<Matcher<MessageEvent>> {
@@ -21,7 +22,7 @@ pub fn r6s() -> Vec<Matcher<MessageEvent>> {
     });
     vec![
         Matcher::new(
-            "r6s".to_string(),
+            "r6s",
             base::R6s {
                 client: client.clone(),
             },
@@ -30,8 +31,18 @@ pub fn r6s() -> Vec<Matcher<MessageEvent>> {
         .add_pre_matcher(command_start())
         .set_priority(3),
         Matcher::new(
-            "r6spro".to_string(),
+            "r6spro",
             pro::R6sPro {
+                client: client.clone(),
+            },
+        )
+        .add_pre_matcher(to_me())
+        .add_pre_matcher(command_start())
+        .set_priority(1)
+        .set_block(true),
+        Matcher::new(
+            "r6splays",
+            plays::R6sPlays {
                 client: client.clone(),
             },
         )
@@ -40,8 +51,8 @@ pub fn r6s() -> Vec<Matcher<MessageEvent>> {
         .set_priority(2)
         .set_block(true),
         Matcher::new(
-            "r6splays".to_string(),
-            plays::R6sPlays {
+            "r6sset",
+            set::R6sSet {
                 client: client.clone(),
             },
         )

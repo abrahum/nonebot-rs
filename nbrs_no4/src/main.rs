@@ -5,6 +5,7 @@ fn main() {
     let mut nb = nonebot_rs::Nonebot::new();
     nb.matchers
         .add_message_matcher(nonebot_rs::builtin::rcnb::rcnb())
+        .add_message_matcher(nonebot_rs::builtin::echo::echo2())
         .add_message_matchers(r6s());
     nb.run()
 }

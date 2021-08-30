@@ -1,4 +1,4 @@
-use crate::utils::{format_stat, get_data, R6sClient};
+use crate::utils::{format_stat, get, get_data, R6sClient};
 use nonebot_rs::{
     async_trait,
     event::MessageEvent,
@@ -15,16 +15,25 @@ pub struct R6sPro {
 
 #[async_trait]
 impl Handler<MessageEvent> for R6sPro {
-    on_command!(MessageEvent, "R6spro", "R6pro", "r6pro", "r6spro");
+    on_command!(MessageEvent, "R6spro", "r6spro", "R6pro", "r6pro");
 
     async fn handle(&self, event: MessageEvent, matcher: Matcher<MessageEvent>) {
-        let id = event.get_raw_message();
-        match get_data(&(*self.client), id).await {
-            Ok(data) => {
-                let text = format_pro(id, data);
-                matcher.send_text(&text).await;
+        let nickname = get(event);
+        if let Some(nickname) = nickname {
+            match get_data(&(*self.client), &nickname).await {
+                Ok(data) => {
+                    if data == Value::Object(serde_json::map::Map::new()) {
+                        matcher.send_text("干员数据为空").await;
+                        return;
+                    }
+                    let text = format_pro(&nickname, data);
+                    matcher.send_text(&text).await;
+                }
+                Err(e) => matcher.send_text(e).await,
             }
-            Err(e) => matcher.send_text(e).await,
+        } else {
+            matcher.send_text("请先使用r6sset设置昵称后查询").await;
+            return;
         }
     }
 }
@@ -32,11 +41,11 @@ impl Handler<MessageEvent> for R6sPro {
 fn format_pro(id: &str, data: Value) -> String {
     let casual_mmr = data.get("Casualstat").unwrap().get("mmr").unwrap();
     let casual = format! {
-        "{}\n\n休闲数据：{}\n隐藏MMR：{}\n隐藏Rank：{}",
+        "{}\n\n休闲数据：\n{}\n隐藏MMR：{}\n隐藏Rank：{}",
         id,
         format_stat(data.get("StatCR").unwrap().get(0).unwrap()),
         casual_mmr,
-        rank(casual_mmr.as_i64().unwrap()),
+        rank(casual_mmr.as_f64().unwrap() as i64),
     };
     if let Some(rank_data) = data.get("StatCR").unwrap().get(1) {
         let rank_mmr = data
@@ -47,11 +56,11 @@ fn format_pro(id: &str, data: Value) -> String {
             .get("mmr")
             .unwrap();
         return format!(
-            "{}\n\n排位数据：{}\n排位MMR：{}\n排位Rank：{}",
+            "{}\n\n排位数据：\n{}\n排位MMR：{}\n排位Rank：{}",
             casual,
             format_stat(rank_data),
             rank_mmr,
-            rank(rank_mmr.as_i64().unwrap()),
+            rank(rank_mmr.as_f64().unwrap() as i64),
         );
     }
     casual

@@ -1,3 +1,4 @@
+/// 去除字符串前方多余空格
 pub fn remove_space(s: &str) -> String {
     let mut rstring = String::from(s);
     let mut chars = s.chars();

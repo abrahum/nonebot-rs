@@ -1,4 +1,4 @@
-use crate::utils::{format_stat, get_data, R6sClient};
+use crate::utils::{format_stat, get, get_data, R6sClient};
 use nonebot_rs::{
     async_trait,
     event::MessageEvent,
@@ -15,16 +15,25 @@ pub struct R6s {
 
 #[async_trait]
 impl Handler<MessageEvent> for R6s {
-    on_command!(MessageEvent, "R6s", "R6", "r6", "r6s");
+    on_command!(MessageEvent, "R6s", "r6s", "R6", "r6");
 
     async fn handle(&self, event: MessageEvent, matcher: Matcher<MessageEvent>) {
-        let id = event.get_raw_message();
-        match get_data(&(*self.client), id).await {
-            Ok(data) => {
-                let text = format_base(id, data);
-                matcher.send_text(&text).await;
+        let nickname = get(event);
+        if let Some(nickname) = nickname {
+            match get_data(&(*self.client), &nickname).await {
+                Ok(data) => {
+                    if data == Value::Object(serde_json::map::Map::new()) {
+                        matcher.send_text("干员数据为空").await;
+                        return;
+                    }
+                    let text = format_base(&nickname, data);
+                    matcher.send_text(&text).await;
+                }
+                Err(e) => matcher.send_text(e).await,
             }
-            Err(e) => matcher.send_text(e).await,
+        } else {
+            matcher.send_text("请先使用r6sset设置昵称后查询").await;
+            return;
         }
     }
 }

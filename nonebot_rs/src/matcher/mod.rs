@@ -3,12 +3,12 @@ use crate::config::BotConfig;
 use crate::event::{MessageEvent, SelfId};
 use crate::utils::timestamp;
 use async_trait::async_trait;
-use colored::*;
 use std::sync::Arc;
-use tokio::sync::mpsc;
-use tracing::{event as tevent, Level};
 
+pub mod api;
 pub mod matchers;
+pub mod message_event_matcher;
+pub mod set_get;
 
 pub type Rule<E> = Arc<dyn Fn(&E, &BotConfig) -> bool + Send + Sync>;
 pub type PreMatcher<E> = fn(&mut E, BotConfig) -> bool;
@@ -49,6 +49,7 @@ where
     event: Option<E>,
 }
 
+#[doc(hidden)]
 impl<E> std::fmt::Debug for Matcher<E>
 where
     E: Clone,
@@ -103,13 +104,13 @@ where
     ///     event: None,
     /// }
     /// ```
-    pub fn new<H>(name: String, handler: H) -> Matcher<E>
+    pub fn new<H>(name: &str, handler: H) -> Matcher<E>
     where
         H: Handler<E> + Sync + Send + 'static,
     {
         // 默认 Matcher
         Matcher {
-            name: name,
+            name: name.to_string(),
             sender: None,
             watcher: None,
             priority: 1,
@@ -179,15 +180,6 @@ where
         return true;
     }
 
-    pub async fn call_api(&self, api: crate::api::Api) {
-        self.sender
-            .clone()
-            .unwrap()
-            .send(ChannelItem::Api(api))
-            .await
-            .unwrap();
-    }
-
     pub async fn set(&self, set: crate::bot::Action) {
         self.sender
             .clone()
@@ -204,17 +196,6 @@ where
         };
         self.set(set).await;
     }
-
-    pub async fn set_temp_message_event_matcher<H>(&self, event: &MessageEvent, handler: H)
-    where
-        H: Handler<MessageEvent> + Send + Sync + 'static,
-    {
-        self.set_message_matcher(
-            event.get_self_id(),
-            build_temp_message_event_matcher(event, handler),
-        )
-        .await;
-    }
 }
 
 pub fn build_temp_message_event_matcher<H>(
@@ -226,7 +207,7 @@ where
 {
     use crate::event::UserId;
     let mut m = Matcher::new(
-        format!("{}-{}", event.get_user_id(), event.get_time()),
+        &format!("{}-{}", event.get_user_id(), event.get_time()),
         handler,
     )
     .add_rule(crate::builtin::rules::is_user(event.get_user_id()));
@@ -238,227 +219,4 @@ where
     m.set_priority(0)
         .set_temp(true)
         .set_timeout(timestamp() + 30)
-}
-
-impl<E> Matcher<E>
-where
-    E: Clone,
-{
-    pub fn set_sender(&mut self, sender: ApiSender) -> Matcher<E> {
-        self.sender = Some(sender);
-        self.clone()
-    }
-
-    pub fn get_sender(&mut self) -> Option<ApiSender> {
-        self.sender.clone()
-    }
-
-    pub fn set_watcher(&mut self, watcher: ApiRespWatcher) -> Matcher<E> {
-        self.watcher = Some(watcher);
-        self.clone()
-    }
-
-    pub fn set_priority(&mut self, priority: i8) -> Matcher<E> {
-        self.priority = priority;
-        self.clone()
-    }
-
-    pub fn add_pre_matcher(&mut self, pre_matcher: Arc<PreMatcher<E>>) -> Matcher<E> {
-        self.pre_matchers.push(pre_matcher);
-        self.clone()
-    }
-
-    pub fn add_rule(&mut self, rule: Rule<E>) -> Matcher<E> {
-        self.rules.push(rule);
-        self.clone()
-    }
-
-    pub fn set_block(&mut self, block: bool) -> Matcher<E> {
-        self.block = block;
-        self.clone()
-    }
-
-    pub fn get_handler(&self) -> &Arc<dyn Handler<E> + Sync + Send> {
-        &self.handler
-    }
-
-    pub fn set_handler(&mut self, handler: Arc<dyn Handler<E> + Sync + Send>) -> Matcher<E> {
-        self.handler = handler;
-        self.clone()
-    }
-
-    pub fn set_disable(&mut self, disable: bool) -> Matcher<E> {
-        self.disable = disable;
-        self.clone()
-    }
-
-    fn set_event(&mut self, event: &E) -> Matcher<E> {
-        self.event = Some(event.clone());
-        self.clone()
-    }
-
-    pub fn is_block(&self) -> bool {
-        self.block
-    }
-
-    pub fn is_temp(&self) -> bool {
-        self.temp
-    }
-
-    pub fn set_temp(&mut self, temp: bool) -> Matcher<E> {
-        self.temp = temp;
-        self.clone()
-    }
-
-    pub fn set_timeout(&mut self, timeout: i64) -> Matcher<E> {
-        self.timeout = Some(timeout);
-        self.clone()
-    }
-}
-
-impl<E> Matcher<E>
-where
-    E: Clone,
-{
-    pub async fn call_api_resp(&self, api: crate::Api) -> Option<crate::api::ApiResp> {
-        let echo = api.get_echo();
-        self.sender
-            .clone()
-            .unwrap()
-            .send(crate::bot::ChannelItem::Api(api))
-            .await
-            .unwrap();
-        let mut watcher = self.watcher.clone().unwrap();
-        let time = crate::utils::timestamp();
-        while let Ok(_) = watcher.changed().await {
-            let resp = (*watcher.borrow()).clone();
-            if resp.echo == echo {
-                return Some(resp.clone());
-            }
-            if crate::utils::timestamp() > time + 30 {
-                return None;
-            }
-        }
-        None
-    }
-}
-
-impl Matcher<MessageEvent> {
-    pub async fn send_text(&self, msg: &str) {
-        let msg = crate::message::Message::Text {
-            text: msg.to_string(),
-        };
-        self.send(vec![msg]).await;
-    }
-
-    pub async fn request_message(&self, msg: &str) -> Option<String> {
-        struct Temp {}
-
-        #[async_trait]
-        impl Handler<MessageEvent> for Temp {
-            crate::on_match_all!();
-            async fn handle(&self, event: MessageEvent, matcher: Matcher<MessageEvent>) {
-                matcher
-                    .sender
-                    .clone()
-                    .unwrap()
-                    .send(crate::bot::ChannelItem::MessageEvent(event))
-                    .await
-                    .unwrap();
-            }
-
-            fn timeout_drop(&self, matcher: &Matcher<MessageEvent>) {
-                let sender = matcher.sender.clone().unwrap();
-                tokio::spawn(async move {
-                    sender.send(crate::bot::ChannelItem::TimeOut).await.unwrap()
-                });
-            }
-        }
-
-        let (sender, mut receiver) = mpsc::channel::<crate::bot::ChannelItem>(4);
-        let event = self.event.clone().unwrap();
-        self.set_message_matcher(
-            event.get_self_id(),
-            build_temp_message_event_matcher(&event, Temp {}).set_sender(sender),
-        )
-        .await;
-
-        self.send_text(msg).await;
-        while let Some(data) = receiver.recv().await {
-            match data {
-                crate::bot::ChannelItem::MessageEvent(event) => {
-                    let msg = crate::utils::remove_space(event.get_raw_message());
-                    if msg.is_empty() {
-                        return None;
-                    } else {
-                        return Some(msg);
-                    }
-                }
-                crate::bot::ChannelItem::TimeOut => return None,
-                // 中转 temp Matcher 的 Remove Action
-                crate::bot::ChannelItem::Action(action) => self.set(action).await,
-                _ => {
-                    use colored::*;
-                    tracing::event!(
-                        tracing::Level::WARN,
-                        "{}",
-                        "Temp Matcher接受端接收到错误Api或Action消息".bright_red()
-                    );
-                } // 忽视 event 该 receiver 永不应该收到 event
-            }
-        }
-
-        None
-    }
-
-    pub async fn send(&self, msg: Vec<crate::message::Message>) {
-        match self.event.clone().unwrap() {
-            MessageEvent::Private(p) => {
-                let info = format!("Send {:?} to {}({})", msg, p.sender.nickname, p.user_id,);
-                tevent!(
-                    Level::INFO,
-                    "Send {:?} to {}({})",
-                    msg,
-                    p.sender.nickname.blue(),
-                    p.user_id.to_string().green(),
-                );
-                &self
-                    .sender
-                    .clone()
-                    .unwrap()
-                    .send(ChannelItem::Api(crate::api::Api::SendPrivateMsg {
-                        params: crate::api::SendPrivateMsg {
-                            user_id: p.user_id,
-                            message: msg,
-                            auto_escape: false,
-                        },
-                        echo: info,
-                    }))
-                    .await
-                    .unwrap();
-            }
-            MessageEvent::Group(g) => {
-                let info = format!("Send {:?} to group ({})", msg, g.group_id,);
-                tevent!(
-                    Level::INFO,
-                    "Send {:?} to group ({})",
-                    msg,
-                    g.group_id.to_string().magenta(),
-                );
-                self.sender
-                    .clone()
-                    .unwrap()
-                    .send(ChannelItem::Api(crate::api::Api::SendGroupMsg {
-                        params: crate::api::SendGroupMsg {
-                            group_id: g.group_id,
-                            message: msg,
-                            auto_escape: false,
-                        },
-                        echo: info,
-                    }))
-                    .await
-                    .unwrap();
-            }
-        }
-    }
 }

@@ -1,5 +1,14 @@
+use nonebot_rs::event::{MessageEvent, SelfId, UserId};
 use reqwest::{header::HeaderMap, Client};
 use serde_json::Value;
+use std::collections::HashMap;
+use std::fs;
+use std::path::PathBuf;
+
+const CACHE_DATE_PATH: &str = "cache";
+const R6S_DIR_NAME: &str = "R6s";
+
+pub type UserNicknameMap = HashMap<String, String>;
 
 #[derive(Clone)]
 pub struct R6sClient {
@@ -48,4 +57,45 @@ pub fn format_stat(data: &Value) -> String {
         data.get("played").unwrap(),
         timeplayed
     )
+}
+
+fn check_dir() -> PathBuf {
+    let r6s_path = PathBuf::from(CACHE_DATE_PATH).join(R6S_DIR_NAME);
+    if !r6s_path.exists() {
+        fs::create_dir_all(&r6s_path).unwrap();
+    }
+    r6s_path
+}
+
+pub fn load(bot_id: &str) -> UserNicknameMap {
+    let path = check_dir().join(format!("{}.json", bot_id));
+    if path.exists() {
+        let data = fs::read_to_string(path).unwrap();
+        let data: UserNicknameMap = serde_json::from_str(&data).unwrap();
+        data
+    } else {
+        let data = HashMap::new();
+        data
+    }
+}
+
+pub fn dump(bot_id: &str, data: UserNicknameMap) {
+    let path = check_dir().join(format!("{}.json", bot_id));
+    let data_str = serde_json::to_string(&data).unwrap();
+    fs::write(path, &data_str).unwrap();
+}
+
+pub fn get(event: MessageEvent) -> Option<String> {
+    let msg = event.get_raw_message();
+    if !msg.is_empty() {
+        return Some(msg.to_string());
+    }
+    let data = load(&event.get_self_id());
+    data.get(&event.get_user_id()).and_then(|x| Some(x.clone()))
+}
+
+pub fn set(bot_id: &str, user_id: String, nickname: String) {
+    let mut data = load(bot_id);
+    data.insert(user_id, nickname);
+    dump(bot_id, data);
 }

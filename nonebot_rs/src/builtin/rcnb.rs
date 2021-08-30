@@ -12,21 +12,17 @@ pub struct Rcnb {}
 impl Handler<MessageEvent> for Rcnb {
     on_command!(MessageEvent, "rcnb", "RCNB", "Rcnb");
     async fn handle(&self, event: MessageEvent, matcher: Matcher<MessageEvent>) {
-        let msg = event.get_raw_message();
-        if !msg.is_empty() {
-            let msg = encode(&msg);
-            matcher.send_text(&msg).await;
-        } else {
-            let msg = matcher.request_message("Please enter something.").await;
-            if let Some(msg) = msg {
-                matcher.send_text(&encode(&msg)).await;
-            }
+        let msg = matcher
+            .request_message(Some(&event), Some("Please enter something."))
+            .await;
+        if let Some(msg) = msg {
+            matcher.send_text(&encode(&msg)).await;
         }
     }
 }
 
 pub fn rcnb() -> Matcher<MessageEvent> {
-    Matcher::new("Rcnb".to_string(), Rcnb {})
+    Matcher::new("Rcnb", Rcnb {})
         .add_pre_matcher(builtin::prematcher::to_me())
         .add_pre_matcher(builtin::prematcher::command_start())
 }

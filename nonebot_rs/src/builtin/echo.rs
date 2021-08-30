@@ -2,7 +2,7 @@ use crate::builtin;
 use crate::event::MessageEvent;
 use crate::matcher::{Handler, Matcher};
 use crate::message::Message;
-use crate::{on_command, on_match_all};
+use crate::on_command;
 use async_trait::async_trait;
 
 #[derive(Clone)]
@@ -20,7 +20,7 @@ impl Handler<MessageEvent> for Echo {
 }
 
 pub fn echo() -> Matcher<MessageEvent> {
-    Matcher::new("Echo".to_string(), Echo {})
+    Matcher::new("Echo", Echo {})
         .add_pre_matcher(builtin::prematcher::to_me())
         .add_pre_matcher(builtin::prematcher::command_start())
 }
@@ -31,36 +31,25 @@ pub struct Echo2 {}
 #[async_trait]
 impl Handler<MessageEvent> for Echo2 {
     on_command!(MessageEvent, "echo mode", "Echo Mode");
-    async fn handle(&self, event: MessageEvent, matcher: Matcher<MessageEvent>) {
+    async fn handle(&self, _: MessageEvent, matcher: Matcher<MessageEvent>) {
         // echo whatever you say until exit
         matcher
             .send_text("Enter Echo Mode\nType :q! to exit.")
             .await;
 
-        pub struct Echo2 {}
-        #[async_trait]
-        impl Handler<MessageEvent> for Echo2 {
-            on_match_all!();
-            async fn handle(&self, event: MessageEvent, matcher: Matcher<MessageEvent>) {
-                if event.get_raw_message() != ":q!" {
-                    matcher
-                        .set_temp_message_event_matcher(&event, Echo2 {})
-                        .await;
-                    matcher.send_text(event.get_raw_message()).await;
-                } else {
-                    matcher.send_text("Quit echo mode").await;
-                }
+        while let Some(msg) = matcher.request_message(None, None).await {
+            if msg == ":q!" {
+                matcher.send_text("Quit echo mode").await;
+                break;
+            } else {
+                matcher.send_text(&msg).await;
             }
         }
-
-        matcher
-            .set_temp_message_event_matcher(&event, Echo2 {})
-            .await;
     }
 }
 
 pub fn echo2() -> Matcher<MessageEvent> {
-    Matcher::new("Echo2".to_string(), Echo2 {})
+    Matcher::new("Echo2", Echo2 {})
         .add_pre_matcher(builtin::prematcher::to_me())
         .add_pre_matcher(builtin::prematcher::command_start())
 }

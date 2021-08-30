@@ -1,4 +1,4 @@
-use crate::utils::{format_division, get_data, R6sClient};
+use crate::utils::{format_division, get, get_data, R6sClient};
 use nonebot_rs::{
     async_trait,
     event::MessageEvent,
@@ -15,16 +15,25 @@ pub struct R6sPlays {
 
 #[async_trait]
 impl Handler<MessageEvent> for R6sPlays {
-    on_command!(MessageEvent, "R6sp", "R6p", "r6p", "r6sp");
+    on_command!(MessageEvent, "R6sp", "r6sp", "R6p", "r6p");
 
     async fn handle(&self, event: MessageEvent, matcher: Matcher<MessageEvent>) {
-        let id = event.get_raw_message();
-        match get_data(&(*self.client), id).await {
-            Ok(data) => {
-                let text = format_plays(id, data.get("StatCR2").unwrap());
-                matcher.send_text(&text).await;
+        let nickname = get(event);
+        if let Some(nickname) = nickname {
+            match get_data(&(*self.client), &nickname).await {
+                Ok(data) => {
+                    if data == Value::Object(serde_json::map::Map::new()) {
+                        matcher.send_text("干员数据为空").await;
+                        return;
+                    }
+                    let text = format_plays(&nickname, data.get("StatCR2").unwrap());
+                    matcher.send_text(&text).await;
+                }
+                Err(e) => matcher.send_text(e).await,
             }
-            Err(e) => matcher.send_text(e).await,
+        } else {
+            matcher.send_text("请先使用r6sset设置昵称后查询").await;
+            return;
         }
     }
 }
@@ -46,7 +55,7 @@ fn format_plays(id: &str, data: &Value) -> String {
             format_division("kills", "deaths", &data)
         };
         format!(
-            "{}\n胜负比：{}/{}\nKD：{}",
+            "\n\n{}\n胜负比：{}/{}\nKD：{}",
             date,
             data.get("won").unwrap(),
             data.get("lost").unwrap(),
@@ -54,9 +63,9 @@ fn format_plays(id: &str, data: &Value) -> String {
         )
     };
 
-    let mut s = format!("{} 近期对战：\n", id);
+    let mut s = format!("{} 近期对战：", id);
     for i in 0..3 {
-        s = format!("{}\n{}", s, f(data.get(i).unwrap()))
+        s = format!("{}{}", s, f(data.get(i).unwrap()))
     }
     s
 }

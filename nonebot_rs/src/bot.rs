@@ -1,4 +1,5 @@
 use crate::api::Api;
+use crate::api_resp::{ApiResp, RespData};
 use crate::builtin;
 use crate::config::BotConfig;
 use crate::event::{Events, SelfId};
@@ -10,7 +11,7 @@ use tracing::{event, Level};
 
 /// 发送 Api 请求的 mpsc channel sender
 pub type ApiSender = Sender<ChannelItem>;
-pub type ApiRespWatcher = watch::Receiver<crate::api::ApiResp>;
+pub type ApiRespWatcher = watch::Receiver<ApiResp>;
 
 /// Bot 运行实例
 pub struct Bot {
@@ -19,7 +20,7 @@ pub struct Bot {
     // amnb: Arc<Mutex<Nonebot>>, // Nonebot
     sender: ApiSender, // channel sender
     /// 广播 Api 调用后回执
-    broadcaster: watch::Sender<crate::api::ApiResp>,
+    broadcaster: watch::Sender<ApiResp>,
     matchers: Matchers, // Bot Matchers
     config: BotConfig,  // Bot config
 }
@@ -57,10 +58,10 @@ impl Bot {
                 }
             }
         }
-        let (bc_sender, watcher) = watch::channel(crate::api::ApiResp {
+        let (bc_sender, watcher) = watch::channel(ApiResp {
             status: "Init".to_string(),
             retcode: 0,
-            data: crate::api::RespData::default(),
+            data: RespData::None,
             echo: "".to_string(),
         });
         matchers.set_sender(sender.clone(), watcher.clone());
@@ -193,7 +194,7 @@ impl Bot {
     async fn handle_resp(&self, resp: String) {
         event!(Level::DEBUG, "handling resp {}", resp);
         // 处理 Api 调用回执
-        let resp: crate::api::ApiResp = serde_json::from_str(&resp).unwrap();
+        let resp: ApiResp = serde_json::from_str(&resp).unwrap();
         builtin::resp_logger(&resp);
         self.broadcaster.send(resp).unwrap();
     }
@@ -229,18 +230,21 @@ impl Bot {
         event!(Level::TRACE, "handling event_ {:?}", e);
         // 每级 Matcher 匹配，返回是否 block
         let mut get_block = false;
-        for (_, matcher) in matcherh {
+        for (name, matcher) in matcherh {
             let matched = matcher.match_(e.clone(), config.clone()).await;
-            if matched && matcher.is_block() {
-                get_block = true;
-            }
-            if matched && matcher.is_temp() {
-                matcher
-                    .set(Action::RemoveMatcher {
-                        bot_id: bot_id.clone(),
-                        name: matcher.name.clone(),
-                    })
-                    .await;
+            if matched {
+                event!(Level::INFO, "Matched {}", name);
+                if matcher.is_block() {
+                    get_block = true;
+                }
+                if matcher.is_temp() {
+                    matcher
+                        .set(Action::RemoveMatcher {
+                            bot_id: bot_id.clone(),
+                            name: matcher.name.clone(),
+                        })
+                        .await;
+                }
             }
         }
         get_block

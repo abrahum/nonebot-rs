@@ -1,6 +1,6 @@
 # Nonebot-rs
 
-基于 rust 的 nonebot2 思路 Onebot 实现
+基于 rust 的 nonebot2 思路 Onebot SDK
 
 计划是实现 Nonebot2 的完整架构，但是由于 rust 的安全性设计，不可避免的出现了一些魔改，正在努力把开发接口包装成类似的样式(是我太菜了)。
 
@@ -16,10 +16,10 @@
   - [ ] HTTP (无限期推迟)
   - [ ] 正向 WS (优先考虑)
   - [x] 反向 WS (使用 axum 实现)
-- [ ] Onebot 标准接口实现(使用 serde 实现)
+- [x] Onebot v11 标准接口实现(使用 serde 实现)
   - [x] Event
   - [x] Message
-  - [ ] Api
+  - [x] Api
 - [x] Built-in Handler
   - [x] logger(tracing-subscriber)
   - [x] echo (基础应答功能)

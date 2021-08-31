@@ -3,8 +3,9 @@ use crate::api_resp::{ApiResp, RespData};
 use crate::builtin;
 use crate::config::BotConfig;
 use crate::event::{Events, SelfId};
-use crate::log::log_load_matchers;
-use crate::{Matchers, Nonebot};
+#[cfg(feature = "matcher")]
+use crate::Matchers;
+use crate::Nonebot;
 use std::sync::{Arc, Mutex};
 use tokio::sync::{broadcast::Receiver, mpsc::Sender, watch};
 use tracing::{event, Level};
@@ -21,8 +22,9 @@ pub struct Bot {
     sender: ApiSender, // channel sender
     /// 广播 Api 调用后回执
     broadcaster: watch::Sender<ApiResp>,
+    #[cfg(feature = "matcher")]
     matchers: Matchers, // Bot Matchers
-    config: BotConfig,  // Bot config
+    config: BotConfig, // Bot config
 }
 
 impl Bot {
@@ -35,11 +37,13 @@ impl Bot {
         amnb: Arc<Mutex<Nonebot>>,
     ) -> Result<Self, String> {
         Bot::check_auth(authorization, amnb.clone())?;
-        let mut matchers: Matchers;
+        #[cfg(feature = "matcher")]
+        let mut matchers = Matchers::new(None, None, None, None);
         let config: BotConfig;
         {
             let nb = amnb.lock().unwrap();
-            matchers = nb.matchers.clone();
+            #[cfg(feature = "matcher")]
+            matchers.get(&nb.matchers);
             config = nb.config.gen_bot_config(&id.to_string());
         }
         let (bc_sender, watcher) = watch::channel(ApiResp {
@@ -48,6 +52,7 @@ impl Bot {
             data: RespData::None,
             echo: "".to_string(),
         });
+        #[cfg(feature = "matcher")]
         matchers.set_sender(sender.clone(), watcher.clone());
         let bot = Bot {
             self_id: id.to_string(),
@@ -55,10 +60,11 @@ impl Bot {
             // amnb: amnb,
             sender: sender,
             broadcaster: bc_sender,
+            #[cfg(feature = "matcher")]
             matchers: matchers,
             config: config,
         };
-        log_load_matchers(&bot.matchers);
+        #[cfg(feature = "matcher")]
         bot.matchers.run_on_connect();
         Ok(bot)
     }
@@ -74,6 +80,7 @@ impl Bot {
         // 处理接收到所有消息，分流上报 Event 和 Api 调用回执
         while let Ok(set) = self.listener.try_recv() {
             event!(Level::DEBUG, "get set {:?}", set);
+            #[cfg(feature = "matcher")]
             self.handle_setter(set);
         }
         let data: serde_json::error::Result<Events> = serde_json::from_str(&msg);
@@ -84,6 +91,7 @@ impl Bot {
     }
 
     /// 接收 Setter 并处理
+    #[cfg(feature = "matcher")]
     fn handle_setter(&mut self, set: Action) {
         match set {
             Action::AddMessageEventMatcher {
@@ -153,6 +161,7 @@ impl Bot {
     async fn handle_events(&self, events: Events) {
         event!(Level::TRACE, "handling events {:?}", events);
         // 处理上报 Event 分流不同 Event 类型
+        #[cfg(feature = "matcher")]
         let matchers = self.matchers.clone();
         let config = self.config.clone();
         let bot_id = self.self_id.clone();
@@ -160,14 +169,20 @@ impl Bot {
             match events {
                 Events::Message(e) => {
                     builtin::logger(&e).await.unwrap();
+                    #[cfg(feature = "matcher")]
                     Bot::handle_event(&matchers.message, e, config, bot_id).await;
                 }
                 Events::Notice(e) => {
+                    #[cfg(feature = "matcher")]
                     Bot::handle_event(&matchers.notice, e, config, bot_id).await;
                 }
-                Events::Request(e) => Bot::handle_event(&matchers.request, e, config, bot_id).await,
+                Events::Request(e) => {
+                    #[cfg(feature = "matcher")]
+                    Bot::handle_event(&matchers.request, e, config, bot_id).await;
+                }
                 Events::Meta(e) => {
                     builtin::metahandle(&e).await;
+                    #[cfg(feature = "matcher")]
                     Bot::handle_event(&matchers.meta, e, config, bot_id).await;
                 }
             }
@@ -184,6 +199,7 @@ impl Bot {
     }
 
     /// 接收按类型分发后的 Event 逐级匹配 Matcher
+    #[cfg(feature = "matcher")]
     async fn handle_event<E>(
         matcherb: &crate::MatchersBTreeMap<E>,
         e: E,
@@ -202,6 +218,7 @@ impl Bot {
     }
 
     #[doc(hidden)]
+    #[cfg(feature = "matcher")]
     async fn handler_event_<E>(
         matcherh: &crate::MatchersHashMap<E>,
         e: E,
@@ -260,17 +277,21 @@ pub enum ChannelItem {
 #[derive(Debug, Clone)]
 pub enum Action {
     /// 移除 Matcher
+    #[cfg(feature = "matcher")]
     RemoveMatcher { bot_id: String, name: String },
     /// 添加 Matcher<MessageEvent>
     ///
     /// 当存在同名 Matcher 时，将会替代旧 Matcher
+    #[cfg(feature = "matcher")]
     AddMessageEventMatcher {
         bot_id: String,
         message_event_matcher: crate::matcher::Matcher<crate::event::MessageEvent>,
     },
     /// 禁用 Matcher
+    #[cfg(feature = "matcher")]
     DisableMatcher { bot_id: String, name: String },
     /// 取消禁用 Matcher
+    #[cfg(feature = "matcher")]
     EnableMatcher { bot_id: String, name: String },
     /// 变更 BotConfig
     ChangeBotConfig {

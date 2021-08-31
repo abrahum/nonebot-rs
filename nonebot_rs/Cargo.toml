@@ -9,6 +9,10 @@ edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+pyo = ["pyo3"]
+matcher = []
+
 [dependencies]
 tracing-subscriber = "0.2"
 headers = "0.3.4"
@@ -20,6 +24,10 @@ toml = "0.5.8"
 async-trait = "0.1.51"
 colored = "2.0.0"
 rcnb-rs = "0.1.0"
+
+[dependencies.pyo3]
+version = "0.14.2"
+optional = true
 
 [dependencies.serde]
 version = "1.0"

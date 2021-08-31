@@ -105,10 +105,14 @@ pub mod config;
 pub mod event;
 mod log;
 /// Matcher 定义
+#[cfg(feature = "matcher")]
 pub mod matcher;
 #[doc(hidden)]
 pub mod message;
 mod plugin;
+#[doc(hidden)]
+#[cfg(feature = "pyo")]
+pub mod pyo;
 mod results;
 mod utils;
 
@@ -121,6 +125,7 @@ pub use api::Api;
 pub use api_resp::ApiResp;
 pub use async_trait::async_trait;
 #[doc(inline)]
+#[cfg(feature = "matcher")]
 pub use matcher::matchers::{Matchers, MatchersBTreeMap, MatchersHashMap};
 #[doc(inline)]
 pub use message::Message;
@@ -146,6 +151,7 @@ pub struct Bot {
 pub struct Nonebot {
     pub config: config::NbConfig, // 全局设置
     pub bots: HashMap<String, Bot>,
+    #[cfg(feature = "matcher")]
     pub matchers: Matchers,
 }
 
@@ -189,10 +195,11 @@ impl Nonebot {
 
     /// 新建一个 Matchers 为空的 Nonebot 结构体
     pub fn new() -> Self {
-        let config = config::NbConfig::load();
+        let nb_config = config::NbConfig::load();
         Nonebot {
-            bots: Nonebot::build_bots(&config),
-            config: config::NbConfig::load(),
+            bots: Nonebot::build_bots(&nb_config),
+            config: nb_config,
+            #[cfg(feature = "matcher")]
             matchers: Matchers::new(None, None, None, None),
         }
     }

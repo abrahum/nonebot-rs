@@ -1,5 +1,6 @@
 use crate::bot::{ApiRespWatcher, ApiSender};
 use crate::event;
+use crate::log::log_load_matchers;
 use crate::matcher::Matcher;
 use std::collections::{BTreeMap, HashMap};
 
@@ -37,6 +38,13 @@ impl Matchers {
         }
     }
 
+    pub fn get(&mut self, m: &Matchers) {
+        self.message = m.message.clone();
+        self.notice = m.notice.clone();
+        self.request = m.request.clone();
+        self.meta = m.meta.clone();
+    }
+
     /// Bot 连接时运行所有 Matcher on_bot_connect 方法
     pub fn run_on_connect(&self) {
         fn run_on_connect_<E>(matcherb: &MatchersBTreeMap<E>)
@@ -50,6 +58,7 @@ impl Matchers {
             }
         }
 
+        log_load_matchers(&self);
         run_on_connect_(&self.message);
         run_on_connect_(&self.notice);
         run_on_connect_(&self.request);

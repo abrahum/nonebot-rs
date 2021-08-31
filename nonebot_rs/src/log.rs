@@ -1,4 +1,6 @@
+#[cfg(feature = "matcher")]
 use colored::*;
+#[cfg(feature = "matcher")]
 use tracing::{event, Level};
 
 pub fn init(debug: bool, trace: Option<bool>) {
@@ -15,6 +17,7 @@ pub fn init(debug: bool, trace: Option<bool>) {
     tracing_subscriber::fmt::init();
 }
 
+#[cfg(feature = "matcher")]
 pub fn log_load_matchers(matchers: &crate::Matchers) {
     log_matcherb(&matchers.message);
     log_matcherb(&matchers.notice);
@@ -22,6 +25,7 @@ pub fn log_load_matchers(matchers: &crate::Matchers) {
     log_matcherb(&matchers.meta);
 }
 
+#[cfg(feature = "matcher")]
 fn log_matcherb<E>(matcherb: &crate::MatchersBTreeMap<E>)
 where
     E: Clone,

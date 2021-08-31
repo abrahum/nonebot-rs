@@ -1,5 +1,6 @@
 use crate::builtin;
 use crate::event::MessageEvent;
+#[cfg(feature = "matcher")]
 use crate::matcher::{Handler, Matcher};
 use crate::message::Message;
 use crate::on_command;

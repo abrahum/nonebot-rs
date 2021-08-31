@@ -63,15 +63,26 @@ impl Default for NbConfig {
 impl NbConfig {
     /// 从配置文件读取配置
     pub fn load() -> Self {
+        use colored::*;
         let config: NbConfig;
         let config_pathbuf = std::path::PathBuf::from(&CONFIG_PATH);
         if !config_pathbuf.exists() {
             config = NbConfig::default();
             let config_string = toml::to_string(&config).unwrap();
             std::fs::write(&config_pathbuf, &config_string).unwrap();
+            println!("{}", "未发现配置文件，已新建配置文件。".green())
         } else {
             let config_string = std::fs::read_to_string(&config_pathbuf).unwrap();
-            config = toml::from_str(&config_string).unwrap();
+            match toml::from_str(&config_string) {
+                Ok(config_data) => {
+                    config = config_data;
+                    println!("{}", "载入配置成功！".bright_green());
+                }
+                Err(e) => {
+                    println!("{} -> {}", "载入配置失败！".bright_red(), e);
+                    std::process::exit(101);
+                }
+            };
         }
         config
     }

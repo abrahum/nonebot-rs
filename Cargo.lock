@@ -779,6 +779,7 @@ dependencies = [
  "headers",
  "http",
  "lazy_static",
+ "pyo3",
  "rcnb-rs",
  "serde",
  "serde_json",

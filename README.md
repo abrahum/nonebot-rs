@@ -1,12 +1,29 @@
-# Nonebot-rs
+<center>
+    <h1> Nonebot-rs </h1>
 
-基于 rust 的 nonebot2 思路 Onebot SDK
+  <a href="https://github.com/botuniverse/onebot/blob/master/v11/specs/README.md">
+    <img src="https://img.shields.io/badge/OneBot-v11-black">
+  </a>
+  <a href="https://github.com/abrahum/nonebot-rs/blob/master/license">
+    <img src="https://img.shields.io/github/license/abrahum/nonebot-rs" alt="license">
+  </a>
+  <a href="https://crates.io/crates/nonebot_rs">
+    <img src="https://img.shields.io/crates/v/nonebot_rs">
+  </a>
+</center>
+
+基于 nonebot2 思路 Onebot SDK Rust 实现。
 
 计划是实现 Nonebot2 的完整架构，但是由于 rust 的安全性设计，不可避免的出现了一些魔改，正在努力把开发接口包装成类似的样式(是我太菜了)。
 
-## nbrs_py
+API文档地址：[Docs.rs](https://docs.rs/nonebot_rs/0.1.0/nonebot_rs/)
 
-使用 Nonebot_rs 作为核心的 Python module (未达到可用状态)
+## 各项目简介
+
+- nonebot_rs：nbrs 本体
+- nbrs_no4：nbrs 实例项目
+- nbrs_matcher_r6s：nbrs Rainbow Six Siege 战绩查询插件
+- nbrs_py：使用 Nonebot_rs 作为核心的 Python module (未达到可用状态)
 
 ## To-Do List
 

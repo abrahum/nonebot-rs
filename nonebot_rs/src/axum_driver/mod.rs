@@ -58,7 +58,14 @@ pub async fn run(
                     x_self_id.0.to_string().red(),
                     x_client_role.0.bright_cyan()
                 );
-                handle_socket(socket, receiver, event_sender, apiresp_watch_sender).await;
+                handle_socket(
+                    socket,
+                    receiver,
+                    event_sender,
+                    apiresp_watch_sender,
+                    x_self_id.0,
+                )
+                .await;
             } else {
                 event!(Level::WARN, "Client headers wrong.");
                 socket.close().await.unwrap();
@@ -76,6 +83,7 @@ async fn stream_recv(
     stream: futures_util::stream::SplitStream<axum::ws::WebSocket>,
     event_sender: &mpsc::Sender<crate::EventChannelItem>,
     apiresp_watch_sender: &watch::Sender<crate::api_resp::ApiResp>,
+    bot_id: i64,
 ) -> futures_util::stream::SplitStream<axum::ws::WebSocket> {
     let (msg, next_stream) = stream.into_future().await;
     if let Some(msg) = msg {
@@ -93,6 +101,13 @@ async fn stream_recv(
                     apiresp_watch_sender.send(api_resp).unwrap();
                 }
             }
+        } else {
+            tracing::event!(
+                tracing::Level::WARN,
+                "Bot [{}] {}",
+                bot_id.to_string().red(),
+                "disconnect."
+            );
         }
     }
     next_stream
@@ -103,6 +118,7 @@ async fn handle_socket(
     mut api_receiver: mpsc::Receiver<crate::ApiChannelItem>,
     event_sender: mpsc::Sender<crate::EventChannelItem>,
     apiresp_watch_sender: watch::Sender<crate::api_resp::ApiResp>,
+    bot_id: i64,
 ) {
     // 将 websocket 接收流与发送流分离
     let (mut sink, mut stream) = socket.split();
@@ -110,7 +126,7 @@ async fn handle_socket(
     let another_event_sender = event_sender.clone();
     let income = async move {
         loop {
-            let r = stream_recv(stream, &another_event_sender, &apiresp_watch_sender).await;
+            let r = stream_recv(stream, &another_event_sender, &apiresp_watch_sender, bot_id).await;
             stream = r;
         }
     };

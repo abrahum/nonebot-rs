@@ -35,6 +35,9 @@ pub struct GlobalConfig {
 /// nbrs bot 配置
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BotConfig {
+    /// bot id
+    #[serde(skip)]
+    pub bot_id: String,
     /// 管理员账号设置
     pub superusers: Vec<String>,
     /// 昵称设置
@@ -90,6 +93,7 @@ impl NbConfig {
     /// 生成 BotConfig
     pub fn gen_bot_config(&self, bot_id: &str) -> BotConfig {
         let mut rbotconfig = BotConfig {
+            bot_id: bot_id.to_string(),
             superusers: self.global.superusers.clone(),
             nicknames: self.global.nicknames.clone(),
             command_starts: self.global.command_starts.clone(),

@@ -89,14 +89,13 @@
 
 /////////////////////////////////////////////////////////////////////////////////
 
+pub mod action;
 #[doc(hidden)]
 pub mod api;
 #[doc(hidden)]
 pub mod api_resp;
 #[doc(hidden)]
 pub mod axum_driver;
-/// Bot 结构体定义   
-pub mod bot;
 /// 内建组件
 pub mod builtin;
 /// nbrs 设置项
@@ -113,12 +112,12 @@ mod plugin;
 #[doc(hidden)]
 #[cfg(feature = "pyo")]
 pub mod pyo;
-mod results;
 mod utils;
 
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
 
+#[doc(inline)]
+pub use action::Action;
 #[doc(inline)]
 pub use api::Api;
 #[doc(inline)]
@@ -129,76 +128,92 @@ pub use async_trait::async_trait;
 pub use matcher::matchers::{Matchers, MatchersBTreeMap, MatchersHashMap};
 #[doc(inline)]
 pub use message::Message;
+use tokio::sync::{mpsc, watch};
 
 #[macro_use]
 extern crate lazy_static;
 
-/// Bot 状态暂存
-///
-/// `Nonebot.bots` 结构体中保存的对象，请注意与 `nonebot_rs::bot::Bot` 的区分，本结构体
-/// 用于储存从配置中读取的 `BotConfig`、后续跨 `Bot` 通讯也需要从该结构体查询。
+pub type ApiSender = mpsc::Sender<ApiChannelItem>;
+pub type ApiRespWatcher = watch::Receiver<ApiResp>;
+
+/// Bot
 #[derive(Debug)]
 pub struct Bot {
-    pub superusers: Vec<String>,
-    pub nickname: Vec<String>,
-    pub command_start: Vec<String>,
-    pub sender: Option<bot::ApiSender>,
+    pub config: config::BotConfig,
+    /// 暂存调用 Bot api
+    pub api_sender: mpsc::Sender<ApiChannelItem>,
+    /// 暂存 ApiResp Receiver
+    api_resp_watcher: watch::Receiver<ApiResp>,
 }
 
 /// nbrs 本体
 ///
 /// 用于注册 `Matcher`，暂存配置项，以及启动实例
 pub struct Nonebot {
-    pub config: config::NbConfig, // 全局设置
+    /// Nonebot 设置
+    pub config: config::NbConfig,
+    /// 储存 Nonebot 下连接的 Bot
     pub bots: HashMap<String, Bot>,
+    /// 暂存 Events Sender
+    event_sender: mpsc::Sender<EventChannelItem>,
+    /// Events Receiver
+    event_receiver: mpsc::Receiver<EventChannelItem>,
     #[cfg(feature = "matcher")]
     pub matchers: Matchers,
 }
 
+/// api channel 传递项
+#[derive(Debug)]
+pub enum ApiChannelItem {
+    Action(Action),
+    /// Onebot Api
+    Api(api::Api),
+    /// Event 用于临时 Matcher 与原 Matcher 传递事件 todo
+    MessageEvent(event::MessageEvent),
+    /// Timeout
+    TimeOut,
+}
+
+/// evnet channel 传递项
+#[derive(Debug)]
+pub enum EventChannelItem {
+    Action(Action),
+    Event(event::Event),
+}
+
 impl Nonebot {
-    /// 根据输入的 `NbConfig` 生成 `Nonebot.bots` 储存的配置信息
-    fn build_bots(config: &config::NbConfig) -> HashMap<String, Bot> {
-        let mut rmap = HashMap::new();
-        if let Some(bots_config) = &config.bots {
-            for (bot_id, bot_config) in bots_config {
-                rmap.insert(
-                    bot_id.clone(),
-                    Bot {
-                        sender: None,
-                        superusers: bot_config.superusers.clone(),
-                        nickname: bot_config.nicknames.clone(),
-                        command_start: bot_config.command_starts.clone(),
-                    },
-                );
-            }
-        }
-        rmap
+    /// 当 WenSocket 收到配置中未配置的 Bot 时，调用该方法新建 Bot 配置信息
+    pub fn add_bot(
+        &mut self,
+        bot_id: i64,
+        api_sender: mpsc::Sender<ApiChannelItem>,
+        api_resp_watcher: watch::Receiver<ApiResp>,
+    ) {
+        let bot_id = bot_id.to_string();
+        self.bots.insert(
+            bot_id.clone(),
+            Bot {
+                config: self.config.gen_bot_config(&bot_id),
+                api_sender: api_sender,
+                api_resp_watcher: api_resp_watcher,
+            },
+        );
     }
 
-    /// 当 WenSocket 收到配置中未配置的 Bot 时，调用该方法新建 Bot 配置信息
-    pub fn add_bot(&mut self, bot_id: i64, sender: bot::ApiSender) {
-        let bot_id = bot_id.to_string();
-        if let Some(bot) = self.bots.get_mut(&bot_id) {
-            bot.sender = Some(sender);
-        } else {
-            self.bots.insert(
-                bot_id,
-                Bot {
-                    sender: Some(sender),
-                    superusers: self.config.global.superusers.clone(),
-                    nickname: self.config.global.nicknames.clone(),
-                    command_start: self.config.global.command_starts.clone(),
-                },
-            );
-        }
+    fn check_auth(_auth: Option<String>) -> bool {
+        // todo
+        true
     }
 
     /// 新建一个 Matchers 为空的 Nonebot 结构体
     pub fn new() -> Self {
         let nb_config = config::NbConfig::load();
+        let (event_sender, event_recevier) = tokio::sync::mpsc::channel(32);
         Nonebot {
-            bots: Nonebot::build_bots(&nb_config),
+            bots: HashMap::new(),
             config: nb_config,
+            event_sender: event_sender,
+            event_receiver: event_recevier,
             #[cfg(feature = "matcher")]
             matchers: Matchers::new(None, None, None, None),
         }
@@ -214,13 +229,59 @@ impl Nonebot {
         );
     }
 
+    async fn recv(mut self) {
+        while let Some(event_channel_item) = self.event_receiver.recv().await {
+            match event_channel_item {
+                EventChannelItem::Action(action) => self.handle_action(action),
+                EventChannelItem::Event(e) => self.handle_event(e),
+            }
+        }
+    }
+
+    fn handle_event(&mut self, e: event::Event) {
+        tracing::event!(tracing::Level::TRACE, "handling events {:?}", e);
+        match &e {
+            event::Event::Message(e) => {
+                builtin::logger(&e);
+            }
+            event::Event::Meta(e) => {
+                builtin::metahandle(&e);
+            }
+            _ => {}
+        }
+
+        #[cfg(feature = "matcher")]
+        {
+            use event::SelfId;
+            let bot = self.bots.get(&e.get_self_id()).unwrap();
+            self.matchers.handle_events(
+                e,
+                bot.config.clone(),
+                bot.api_sender.clone(),
+                bot.api_resp_watcher.clone(),
+            )
+        }
+    }
+
     /// 运行 Nonebot 实例
-    pub fn run(self) {
+    #[tokio::main]
+    pub async fn run(self) {
         self.pre_run();
-        let rt = tokio::runtime::Builder::new_multi_thread()
-            .enable_all()
-            .build()
-            .unwrap();
-        rt.block_on(axum_driver::run(Arc::new(Mutex::new(self))));
+        tokio::spawn(axum_driver::run(
+            self.config.global.host,
+            self.config.global.port,
+            self.event_sender.clone(),
+        ));
+        self.recv().await;
+    }
+
+    pub async fn async_run(self) {
+        self.pre_run();
+        tokio::spawn(axum_driver::run(
+            self.config.global.host,
+            self.config.global.port,
+            self.event_sender.clone(),
+        ));
+        self.recv().await;
     }
 }

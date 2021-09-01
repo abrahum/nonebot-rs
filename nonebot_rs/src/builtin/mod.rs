@@ -14,12 +14,11 @@ pub mod rcnb;
 pub mod rules;
 
 use crate::event::{MessageEvent, MetaEvent};
-use crate::results::HandlerResult;
 use colored::*;
 use tracing::{event, Level};
 
 #[doc(hidden)]
-pub async fn logger(event: &MessageEvent) -> HandlerResult {
+pub fn logger(event: &MessageEvent) {
     match &event {
         MessageEvent::Private(p) => {
             let mut user_id = p.user_id.to_string();
@@ -52,7 +51,6 @@ pub async fn logger(event: &MessageEvent) -> HandlerResult {
             )
         }
     }
-    Ok(true)
 }
 
 #[doc(hidden)]
@@ -65,7 +63,7 @@ pub fn resp_logger(resp: &crate::api_resp::ApiResp) {
 }
 
 #[doc(hidden)]
-pub async fn metahandle(event: &MetaEvent) {
+pub fn metahandle(event: &MetaEvent) {
     if &event.meta_event_type == "heartbeat" {
         event!(Level::TRACE, "Recive HeartBeat")
     }

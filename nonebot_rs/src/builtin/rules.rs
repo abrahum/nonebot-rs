@@ -1,6 +1,6 @@
 use crate::config::BotConfig;
 use crate::event::MessageEvent;
-use crate::event::UserId;
+use crate::event::{SelfId, UserId};
 use crate::matcher::Rule;
 use std::sync::Arc;
 
@@ -19,6 +19,21 @@ where
         false
     };
     Arc::new(is_superuser)
+}
+
+/// 判定是否为指定 Bot
+pub fn is_bot<E>(bot_id: String) -> Rule<E>
+where
+    E: SelfId,
+{
+    let is_bot = move |event: &E, _: &BotConfig| -> bool {
+        let self_id = event.get_self_id();
+        if bot_id == self_id {
+            return true;
+        }
+        false
+    };
+    Arc::new(is_bot)
 }
 
 /// 判定 sender 是否为指定 user

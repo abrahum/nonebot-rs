@@ -1,10 +1,17 @@
 use crate::message::Message;
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum RecvItem {
+    Event(Event),
+    ApiResp(crate::api_resp::ApiResp),
+}
+
 /// Onebot 事件
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "post_type")]
-pub enum Events {
+pub enum Event {
     /// 消息事件
     #[serde(rename = "message")]
     Message(MessageEvent),
@@ -329,5 +336,16 @@ impl SelfId for NoticeEvent {
 impl SelfId for MetaEvent {
     fn get_self_id(&self) -> String {
         self.self_id.to_string()
+    }
+}
+
+impl SelfId for Event {
+    fn get_self_id(&self) -> String {
+        match self {
+            Event::Message(e) => e.get_self_id(),
+            Event::Request(e) => e.get_self_id(),
+            Event::Notice(e) => e.get_self_id(),
+            Event::Meta(e) => e.get_self_id(),
+        }
     }
 }

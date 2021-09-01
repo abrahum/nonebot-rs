@@ -1,28 +1,10 @@
 use super::{Handler, Matcher, PreMatcher, Rule};
-use crate::bot::{ApiRespWatcher, ApiSender};
 use std::sync::Arc;
 
 impl<E> Matcher<E>
 where
     E: Clone,
 {
-    /// 设置 sender（向 WebSocket 发送消息）
-    pub fn set_sender(&mut self, sender: ApiSender) -> Matcher<E> {
-        self.sender = Some(sender);
-        self.clone()
-    }
-
-    /// 获取 sender
-    pub fn get_sender(&mut self) -> Option<ApiSender> {
-        self.sender.clone()
-    }
-
-    /// 设置 watcher（接收 Bot ApiResp）
-    pub fn set_watcher(&mut self, watcher: ApiRespWatcher) -> Matcher<E> {
-        self.watcher = Some(watcher);
-        self.clone()
-    }
-
     /// 设置 priority
     pub fn set_priority(&mut self, priority: i8) -> Matcher<E> {
         self.priority = priority;

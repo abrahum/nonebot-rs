@@ -1,5 +1,4 @@
-use crate::bot::{Action, Bot, ChannelItem};
-use crate::Nonebot;
+use crate::EventChannelItem;
 use axum::{
     extract::TypedHeader,
     prelude::*,
@@ -7,21 +6,16 @@ use axum::{
 };
 use colored::*;
 use futures_util::{SinkExt, StreamExt};
-use std::sync::{Arc, Mutex};
-use tokio::sync::{broadcast, mpsc};
+use tokio::sync::{mpsc, watch};
 use tracing::{event, Level};
 
 mod xheaders;
 
-pub async fn run(nb_arc: Arc<Mutex<Nonebot>>) {
-    let host: std::net::Ipv4Addr;
-    let port: u16;
-    {
-        let nb = nb_arc.lock().unwrap();
-        host = nb.config.global.host;
-        port = nb.config.global.port;
-    }
-    let (broadcaster, _) = broadcast::channel::<Action>(32);
+pub async fn run(
+    host: std::net::Ipv4Addr,
+    port: u16,
+    event_sender: mpsc::Sender<EventChannelItem>,
+) {
     let handle_socket =
         |socket: WebSocket,
          x_self_id: Option<TypedHeader<xheaders::XSelfId>>,
@@ -36,24 +30,27 @@ pub async fn run(nb_arc: Arc<Mutex<Nonebot>>) {
             ) = (user_agent, x_self_id, x_client_role)
             {
                 let (sender, receiver) = mpsc::channel(32);
-                let broadcaster = broadcaster.clone();
+                let (apiresp_watch_sender, api_resp_watcher) =
+                    watch::channel(crate::api_resp::ApiResp {
+                        status: "init".to_string(),
+                        retcode: 0,
+                        data: crate::api_resp::RespData::None,
+                        echo: "".to_string(),
+                    });
                 let auth = if let Some(TypedHeader(auth)) = authorization {
                     Some(auth.0)
                 } else {
                     None
                 };
-                {
-                    let mut nb = nb_arc.lock().unwrap();
-                    (*nb).add_bot(x_self_id.0, sender.clone()); // 在 nb 建立 bot 状态管理器
-                }
-                let bot = Bot::new(
-                    x_self_id.0,
-                    auth,
-                    sender,
-                    broadcaster.subscribe(),
-                    nb_arc.clone(),
-                )
-                .unwrap();
+                event_sender
+                    .send(crate::EventChannelItem::Action(crate::Action::AddBot {
+                        bot_id: x_self_id.0,
+                        api_sender: sender,
+                        auth: auth,
+                        api_resp_watcher: api_resp_watcher,
+                    }))
+                    .await
+                    .unwrap();
                 event!(
                     Level::INFO,
                     "{} Client {} is connectted. The client type is {}",
@@ -61,7 +58,10 @@ pub async fn run(nb_arc: Arc<Mutex<Nonebot>>) {
                     x_self_id.0.to_string().red(),
                     x_client_role.0.bright_cyan()
                 );
-                handle_socket(bot, socket, receiver, broadcaster).await;
+                handle_socket(socket, receiver, event_sender, apiresp_watch_sender).await;
+            } else {
+                event!(Level::WARN, "Client headers wrong.");
+                socket.close().await.unwrap();
             }
         };
     let app = route("/ws", ws(handle_socket));
@@ -74,47 +74,63 @@ pub async fn run(nb_arc: Arc<Mutex<Nonebot>>) {
 
 async fn stream_recv(
     stream: futures_util::stream::SplitStream<axum::ws::WebSocket>,
-    mut bot: Bot,
-) -> (futures_util::stream::SplitStream<axum::ws::WebSocket>, Bot) {
+    event_sender: &mpsc::Sender<crate::EventChannelItem>,
+    apiresp_watch_sender: &watch::Sender<crate::api_resp::ApiResp>,
+) -> futures_util::stream::SplitStream<axum::ws::WebSocket> {
     let (msg, next_stream) = stream.into_future().await;
     if let Some(msg) = msg {
+        use crate::event::RecvItem;
         if let Ok(msg) = msg {
-            bot.handle_recv(msg.to_str().unwrap().to_string()).await;
+            let data: RecvItem = serde_json::from_str(msg.to_str().unwrap()).unwrap();
+            match data {
+                RecvItem::Event(event) => {
+                    event_sender
+                        .send(crate::EventChannelItem::Event(event))
+                        .await
+                        .unwrap();
+                }
+                RecvItem::ApiResp(api_resp) => {
+                    apiresp_watch_sender.send(api_resp).unwrap();
+                }
+            }
         }
     }
-    (next_stream, bot)
+    next_stream
 }
 
 async fn handle_socket(
-    mut bot: Bot,
     socket: WebSocket,
-    mut receiver: mpsc::Receiver<ChannelItem>,
-    broadcaster: broadcast::Sender<Action>,
+    mut api_receiver: mpsc::Receiver<crate::ApiChannelItem>,
+    event_sender: mpsc::Sender<crate::EventChannelItem>,
+    apiresp_watch_sender: watch::Sender<crate::api_resp::ApiResp>,
 ) {
     // 将 websocket 接收流与发送流分离
     let (mut sink, mut stream) = socket.split();
     // 接收消息
+    let another_event_sender = event_sender.clone();
     let income = async move {
         loop {
-            let rdata = stream_recv(stream, bot).await;
-            stream = rdata.0;
-            bot = rdata.1;
+            let r = stream_recv(stream, &another_event_sender, &apiresp_watch_sender).await;
+            stream = r;
         }
     };
     // 发送消息
     let outcome = async move {
-        while let Some(data) = receiver.recv().await {
+        while let Some(data) = api_receiver.recv().await {
             match data {
-                ChannelItem::Api(data) => {
-                    let json_string = serde_json::to_string(&data).unwrap();
+                crate::ApiChannelItem::Api(api) => {
+                    let json_string = serde_json::to_string(&api).unwrap();
                     sink.send(axum::ws::Message::text(json_string))
                         .await
                         .unwrap();
                 }
-                ChannelItem::Action(action) => {
-                    broadcaster.send(action).unwrap();
+                crate::ApiChannelItem::Action(action) => {
+                    event_sender
+                        .send(crate::EventChannelItem::Action(action))
+                        .await
+                        .unwrap();
                 }
-                ChannelItem::MessageEvent(_) => {
+                crate::ApiChannelItem::MessageEvent(_) => {
                     use colored::*;
                     tracing::event!(
                         tracing::Level::WARN,
@@ -122,7 +138,7 @@ async fn handle_socket(
                         "WedSocket接受端接收到错误Event消息".bright_red()
                     );
                 }
-                ChannelItem::TimeOut => {
+                crate::ApiChannelItem::TimeOut => {
                     use colored::*;
                     tracing::event!(
                         tracing::Level::WARN,

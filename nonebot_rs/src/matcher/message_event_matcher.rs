@@ -1,6 +1,6 @@
 use super::{build_temp_message_event_matcher, Handler, Matcher};
-use crate::bot::ChannelItem;
-use crate::event::{MessageEvent, SelfId};
+use crate::event::MessageEvent;
+use crate::ApiChannelItem;
 use async_trait::async_trait;
 use colored::*;
 use tracing::{event as tevent, Level};
@@ -19,11 +19,8 @@ impl Matcher<MessageEvent> {
     where
         H: Handler<MessageEvent> + Send + Sync + 'static,
     {
-        self.set_message_matcher(
-            event.get_self_id(),
-            build_temp_message_event_matcher(event, handler),
-        )
-        .await;
+        self.set_message_matcher(build_temp_message_event_matcher(event, handler))
+            .await;
     }
 
     /// 请求消息内容
@@ -51,36 +48,32 @@ impl Matcher<MessageEvent> {
             crate::on_match_all!();
             async fn handle(&self, event: MessageEvent, matcher: Matcher<MessageEvent>) {
                 matcher
-                    .sender
+                    .api_sender
                     .clone()
                     .unwrap()
-                    .send(crate::bot::ChannelItem::MessageEvent(event))
+                    .send(ApiChannelItem::MessageEvent(event))
                     .await
                     .unwrap();
             }
 
             fn timeout_drop(&self, matcher: &Matcher<MessageEvent>) {
-                let sender = matcher.sender.clone().unwrap();
-                tokio::spawn(async move {
-                    sender.send(crate::bot::ChannelItem::TimeOut).await.unwrap()
-                });
+                let sender = matcher.api_sender.clone().unwrap();
+                tokio::spawn(async move { sender.send(ApiChannelItem::TimeOut).await.unwrap() });
             }
         }
 
-        let (sender, mut receiver) = tokio::sync::mpsc::channel::<crate::bot::ChannelItem>(4);
+        let (sender, mut receiver) = tokio::sync::mpsc::channel::<ApiChannelItem>(4);
         let event = self.event.clone().unwrap();
-        self.set_message_matcher(
-            event.get_self_id(),
-            build_temp_message_event_matcher(&event, Temp {}).set_sender(sender),
-        )
-        .await;
+        let mut m = build_temp_message_event_matcher(&event, Temp {});
+        m.api_sender = Some(sender);
+        self.set_message_matcher(m).await;
 
         if let Some(msg) = msg {
             self.send_text(msg).await;
         }
         while let Some(data) = receiver.recv().await {
             match data {
-                crate::bot::ChannelItem::MessageEvent(event) => {
+                ApiChannelItem::MessageEvent(event) => {
                     let msg = crate::utils::remove_space(event.get_raw_message());
                     if msg.is_empty() {
                         return None;
@@ -88,9 +81,9 @@ impl Matcher<MessageEvent> {
                         return Some(msg);
                     }
                 }
-                crate::bot::ChannelItem::TimeOut => return None,
+                ApiChannelItem::TimeOut => return None,
                 // 中转 temp Matcher 的 Remove Action
-                crate::bot::ChannelItem::Action(action) => self.set(action).await,
+                ApiChannelItem::Action(action) => self.set(action).await,
                 _ => {
                     use colored::*;
                     tracing::event!(
@@ -118,10 +111,10 @@ impl Matcher<MessageEvent> {
                     p.user_id.to_string().green(),
                 );
                 &self
-                    .sender
+                    .api_sender
                     .clone()
                     .unwrap()
-                    .send(ChannelItem::Api(crate::api::Api::SendPrivateMsg {
+                    .send(ApiChannelItem::Api(crate::api::Api::SendPrivateMsg {
                         params: crate::api::SendPrivateMsg {
                             user_id: p.user_id,
                             message: msg,
@@ -140,10 +133,10 @@ impl Matcher<MessageEvent> {
                     msg,
                     g.group_id.to_string().magenta(),
                 );
-                self.sender
+                self.api_sender
                     .clone()
                     .unwrap()
-                    .send(ChannelItem::Api(crate::api::Api::SendGroupMsg {
+                    .send(ApiChannelItem::Api(crate::api::Api::SendGroupMsg {
                         params: crate::api::SendGroupMsg {
                             group_id: g.group_id,
                             message: msg,

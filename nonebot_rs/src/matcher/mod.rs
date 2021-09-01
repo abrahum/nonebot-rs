@@ -1,9 +1,11 @@
-use crate::bot::{ApiRespWatcher, ApiSender, ChannelItem};
+use crate::api_resp::ApiResp;
 use crate::config::BotConfig;
 use crate::event::{MessageEvent, SelfId};
 use crate::utils::timestamp;
+use crate::{Action, ApiChannelItem};
 use async_trait::async_trait;
 use std::sync::Arc;
+use tokio::sync::{mpsc, watch};
 
 #[doc(hidden)]
 pub mod api;
@@ -30,10 +32,10 @@ where
 {
     /// Matcher 名称，是 Matcher 的唯一性标识
     pub name: String,
-    /// 消息发送接口
-    sender: Option<ApiSender>,
-    /// Api 回执接受通道
-    watcher: Option<ApiRespWatcher>,
+    /// Onebot Api 调用通道
+    pub api_sender: Option<mpsc::Sender<ApiChannelItem>>,
+    /// ApiResp 接收通道
+    pub api_resp_watcher: Option<watch::Receiver<ApiResp>>,
     /// Matcher 的匹配优先级
     priority: i8,
     /// 前处理函数组，获取 &mut event
@@ -68,6 +70,8 @@ where
             .field("disable", &self.disable)
             .field("temp", &self.temp)
             .field("timeout", &self.timeout)
+            .field("api_sender", &self.api_sender)
+            .field("api_resp_watcher", &self.api_resp_watcher)
             .finish()
     }
 }
@@ -117,8 +121,8 @@ where
         // 默认 Matcher
         Matcher {
             name: name.to_string(),
-            sender: None,
-            watcher: None,
+            api_sender: None,
+            api_resp_watcher: None,
             priority: 1,
             pre_matchers: vec![],
             // after_matchers: vec![],
@@ -165,8 +169,7 @@ where
         let mut event = event.clone();
         if let Some(timeout) = self.timeout {
             if timestamp() > timeout {
-                self.set(crate::bot::Action::RemoveMatcher {
-                    bot_id: event.get_self_id(),
+                self.set(Action::RemoveMatcher {
                     name: self.name.clone(),
                 })
                 .await;
@@ -190,19 +193,18 @@ where
     }
 
     /// 发送 nbrs 内部设置 Action
-    pub async fn set(&self, set: crate::bot::Action) {
-        self.sender
+    pub async fn set(&self, set: Action) {
+        self.api_sender
             .clone()
             .unwrap()
-            .send(ChannelItem::Action(set))
+            .send(crate::ApiChannelItem::Action(set))
             .await
             .unwrap();
     }
 
     /// 向指定 bot_id 添加 Matcher<MessageEvent>
-    pub async fn set_message_matcher(&self, bot_id: String, matcher: Matcher<MessageEvent>) {
-        let set = crate::bot::Action::AddMessageEventMatcher {
-            bot_id: bot_id,
+    pub async fn set_message_matcher(&self, matcher: Matcher<MessageEvent>) {
+        let set = Action::AddMessageEventMatcher {
             message_event_matcher: matcher,
         };
         self.set(set).await;
@@ -219,10 +221,16 @@ where
 {
     use crate::event::UserId;
     let mut m = Matcher::new(
-        &format!("{}-{}", event.get_user_id(), event.get_time()),
+        &format!(
+            "{}-{}-{}",
+            event.get_self_id(),
+            event.get_user_id(),
+            event.get_time()
+        ),
         handler,
     )
-    .add_rule(crate::builtin::rules::is_user(event.get_user_id()));
+    .add_rule(crate::builtin::rules::is_user(event.get_user_id()))
+    .add_rule(crate::builtin::rules::is_bot(event.get_self_id()));
     if let MessageEvent::Group(g) = event {
         m.add_rule(crate::builtin::rules::in_group(g.group_id));
     } else {

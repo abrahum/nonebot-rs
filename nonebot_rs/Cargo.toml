@@ -12,6 +12,7 @@ edition = "2018"
 [features]
 pyo = ["pyo3"]
 matcher = []
+cron = ["tokio-cron-scheduler"]
 
 [dependencies]
 tracing-subscriber = "0.2"
@@ -24,6 +25,7 @@ toml = "0.5.8"
 async-trait = "0.1.51"
 colored = "2.0.0"
 rcnb-rs = "0.1.0"
+tokio-cron-scheduler = { version = "*", optional = true }
 
 [dependencies.pyo3]
 version = "0.14.2"

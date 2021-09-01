@@ -48,23 +48,33 @@ impl Matchers {
     }
 
     /// Bot 连接时运行所有 Matcher on_bot_connect 方法
-    pub fn run_on_connect(&self) {
-        fn run_on_connect_<E>(matcherb: &MatchersBTreeMap<E>)
-        where
+    pub fn run_on_connect(
+        &self,
+        api_sender: crate::ApiSender,
+        api_resp_watcher: crate::ApiRespWatcher,
+    ) {
+        fn run_on_connect_<E>(
+            matcherb: &MatchersBTreeMap<E>,
+            api_sender: crate::ApiSender,
+            api_resp_watcher: crate::ApiRespWatcher,
+        ) where
             E: Clone,
         {
             for (_, matcherh) in matcherb {
                 for (_, matcher) in matcherh {
-                    matcher.get_handler().on_bot_connect(matcher.clone());
+                    matcher
+                        .build(api_sender.clone(), api_resp_watcher.clone())
+                        .get_handler()
+                        .on_bot_connect(matcher.clone());
                 }
             }
         }
 
         log_load_matchers(&self);
-        run_on_connect_(&self.message);
-        run_on_connect_(&self.notice);
-        run_on_connect_(&self.request);
-        run_on_connect_(&self.meta);
+        run_on_connect_(&self.message, api_sender.clone(), api_resp_watcher.clone());
+        run_on_connect_(&self.notice, api_sender.clone(), api_resp_watcher.clone());
+        run_on_connect_(&self.request, api_sender.clone(), api_resp_watcher.clone());
+        run_on_connect_(&self.meta, api_sender.clone(), api_resp_watcher.clone());
     }
 
     /// 向 Matchers 添加 Matcher<MessageEvent>
@@ -228,11 +238,10 @@ impl Matchers {
         // 每级 Matcher 匹配，返回是否 block
         let mut get_block = false;
         for (name, matcher) in matcherh.iter_mut() {
-            if let None = &matcher.api_sender {
-                matcher.api_sender = Some(api_sender.clone());
-            }
-            matcher.api_resp_watcher = Some(api_resp_watcher.clone());
-            let matched = matcher.match_(e.clone(), config.clone()).await;
+            let matched = matcher
+                .build(api_sender.clone(), api_resp_watcher.clone())
+                .match_(e.clone(), config.clone())
+                .await;
             if matched {
                 event!(Level::INFO, "Matched {}", name);
                 if matcher.is_block() {

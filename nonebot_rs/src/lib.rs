@@ -13,9 +13,9 @@
 //! # nbrs 设计
 //!
 //! nbrs 启动后，将读取设置文件、并注册 Matchers（其实这一步已经在编译时硬编码），当接
-//! 收到 WebSocket 连接后，将新建一个 Bot 实例，接受 Event 后，由 Bot 负责逐渐匹配分发
-//! 到各个 Matcher ，Matcher 处理后，通过 channel 将数据传递回 WebSocket 发送。每个
-//! Event 的匹配与 Matcher 的处理均为独立协程，以此提高并发性能。
+//! 收到 WebSocket 连接后，加载 Bot 设置，接受 Event 后，由 nbrs 逐级匹配分发到各个
+//!  Matcher ，Matcher 处理后，通过 channel 将数据传递回 WebSocket 发送。每个 Event
+//! 的匹配与 Matcher 的处理均为独立协程，以此提高并发性能。
 //!
 //! # Nonebotrs.toml
 //!
@@ -146,6 +146,62 @@ pub struct Bot {
     api_resp_watcher: watch::Receiver<ApiResp>,
 }
 
+impl Bot {
+    pub async fn send_group_msg(&self, group_id: i64, msg: Vec<message::Message>) {
+        self.api_sender
+            .send(ApiChannelItem::Api(api::Api::SendGroupMsg {
+                params: api::SendGroupMsg {
+                    group_id: group_id,
+                    message: msg.clone(),
+                    auto_escape: false,
+                },
+                echo: format!("{}-{:?}", self.config.bot_id, msg),
+            }))
+            .await
+            .unwrap();
+    }
+
+    pub async fn send_private_msg(&self, user_id: i64, msg: Vec<message::Message>) {
+        self.api_sender
+            .send(ApiChannelItem::Api(api::Api::SendPrivateMsg {
+                params: api::SendPrivateMsg {
+                    user_id: user_id,
+                    message: msg.clone(),
+                    auto_escape: false,
+                },
+                echo: format!("{}-{:?}", self.config.bot_id, msg),
+            }))
+            .await
+            .unwrap();
+    }
+
+    pub async fn call_api(&self, api: api::Api) {
+        self.api_sender
+            .send(ApiChannelItem::Api(api))
+            .await
+            .unwrap();
+    }
+
+    pub async fn call_api_resp(&mut self, api: api::Api) -> Option<api_resp::ApiResp> {
+        let echo = api.get_echo();
+        self.api_sender
+            .send(ApiChannelItem::Api(api))
+            .await
+            .unwrap();
+        let time = utils::timestamp();
+        while let Ok(_) = self.api_resp_watcher.changed().await {
+            let resp = self.api_resp_watcher.borrow().clone();
+            if resp.echo == echo {
+                return Some(resp);
+            }
+            if utils::timestamp() > time + 30 {
+                return None;
+            }
+        }
+        None
+    }
+}
+
 /// nbrs 本体
 ///
 /// 用于注册 `Matcher`，暂存配置项，以及启动实例
@@ -160,6 +216,8 @@ pub struct Nonebot {
     event_receiver: mpsc::Receiver<EventChannelItem>,
     #[cfg(feature = "matcher")]
     pub matchers: Matchers,
+    #[cfg(feature = "cron")]
+    pub scheduler: tokio_cron_scheduler::JobScheduler,
 }
 
 /// api channel 传递项
@@ -216,6 +274,8 @@ impl Nonebot {
             event_receiver: event_recevier,
             #[cfg(feature = "matcher")]
             matchers: Matchers::new(None, None, None, None),
+            #[cfg(feature = "cron")]
+            scheduler: tokio_cron_scheduler::JobScheduler::new(),
         }
     }
 

@@ -26,9 +26,9 @@ API文档地址：[Docs.rs](https://docs.rs/nonebot_rs/0.1.0/nonebot_rs/)
 ## nbrs 设计
 
 nbrs 启动后，将读取设置文件、并注册 Matchers（其实这一步已经在编译时硬编码），当接
-收到 WebSocket 连接后，将新建一个 Bot 实例，接受 Event 后，由 Bot 负责逐渐匹配分发
-到各个 Matcher ，Matcher 处理后，通过 channel 将数据传递回 WebSocket 发送。每个
-Event 的匹配与 Matcher 的处理均为独立协程，以此提高并发性能。
+收到 WebSocket 连接后，加载 Bot 设置，接受 Event 后，由 nbrs 逐级匹配分发到各个
+Matcher ，Matcher 处理后，通过 channel 将数据传递回 WebSocket 发送。每个 Event
+的匹配与 Matcher 的处理均为独立协程，以此提高并发性能。
 
 ## Nonebotrs.toml
 

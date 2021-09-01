@@ -55,9 +55,9 @@ API文档地址：[Docs.rs](https://docs.rs/nonebot_rs/0.1.0/nonebot_rs/)
   - [x] aftermatcher
   - [ ] Matcher Api
   - [x] 临时 Matcher 实现对话
-- [ ] 文档
+- [x] 文档
 - [ ] 定时任务插件
-- [ ] 实现属性宏声明插件，便于二次开发
+- [x] 声明宏
 - [ ] 模块化分离各组件
 - [ ] 使用 pyo3 搭建 nonebot-rs 版 Python 库(又绕回来了.jpg)
 
@@ -98,4 +98,4 @@ global 设置对每个未指定 bot 都有效，~~当在 global 外特别设置�
 
 最小实例请看 nonebot_rs/bin/minimal.rs ，matcher 等等声明请看 builtin 中各项(锐意迭代中)。
 
-目前本项目处于非常不稳定阶段，项目结构、API 均为待定，感兴趣的同学可以 Star 一下以后再来看看(厚颜无耻)
+目前本项目处于 ~~非常不稳定阶段，项目结构、API 均为待定~~ Api 初步稳定，感兴趣的同学可以 Star 一下以后再来看看(厚颜无耻)

@@ -36,6 +36,7 @@ pub enum Action {
 }
 
 impl crate::Nonebot {
+    /// 处理 Nonebot 内部设置项
     pub fn handle_action(&mut self, action: Action) {
         event!(Level::DEBUG, "Receive Action {:?}", action);
         match action {
@@ -46,10 +47,11 @@ impl crate::Nonebot {
                 api_resp_watcher,
             } => {
                 if crate::Nonebot::check_auth(auth) {
-                    self.add_bot(bot_id, api_sender, api_resp_watcher);
+                    self.add_bot(bot_id, api_sender.clone(), api_resp_watcher.clone());
                     event!(Level::DEBUG, "Add Bot [{}]", bot_id);
                     #[cfg(feature = "matcher")]
-                    self.matchers.run_on_connect();
+                    self.matchers
+                        .run_on_connect(api_sender.clone(), api_resp_watcher.clone());
                 } else {
                     event!(Level::WARN, "Bot [{}] authorize failure", bot_id);
                 }

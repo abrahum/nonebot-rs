@@ -12,6 +12,8 @@ pub enum Action {
         auth: Option<String>,
         api_resp_watcher: watch::Receiver<crate::api_resp::ApiResp>,
     },
+    /// 移除 Bot
+    RemoveBot { bot_id: i64 },
     /// 移除 Matcher
     #[cfg(feature = "matcher")]
     RemoveMatcher { name: String },
@@ -55,6 +57,10 @@ impl crate::Nonebot {
                 } else {
                     event!(Level::WARN, "Bot [{}] authorize failure", bot_id);
                 }
+            }
+            Action::RemoveBot { bot_id } => {
+                self.remove_bot(bot_id);
+                event!(Level::DEBUG, "Remove Bot [{}]", bot_id);
             }
             #[cfg(feature = "matcher")]
             Action::AddMessageEventMatcher {

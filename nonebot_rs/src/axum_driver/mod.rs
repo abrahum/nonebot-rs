@@ -108,6 +108,12 @@ async fn stream_recv(
                 bot_id.to_string().red(),
                 "disconnect."
             );
+            event_sender
+                .send(crate::EventChannelItem::Action(crate::Action::RemoveBot {
+                    bot_id: bot_id,
+                }))
+                .await
+                .unwrap();
         }
     }
     next_stream
@@ -134,18 +140,21 @@ async fn handle_socket(
     let outcome = async move {
         while let Some(data) = api_receiver.recv().await {
             match data {
+                // Onebot Api
                 crate::ApiChannelItem::Api(api) => {
                     let json_string = serde_json::to_string(&api).unwrap();
                     sink.send(axum::ws::Message::text(json_string))
                         .await
                         .unwrap();
                 }
+                // Nonebot Action
                 crate::ApiChannelItem::Action(action) => {
                     event_sender
                         .send(crate::EventChannelItem::Action(action))
                         .await
                         .unwrap();
                 }
+                // temp Matcher event
                 crate::ApiChannelItem::MessageEvent(_) => {
                     use colored::*;
                     tracing::event!(
@@ -154,6 +163,7 @@ async fn handle_socket(
                         "WedSocket接受端接收到错误Event消息".bright_red()
                     );
                 }
+                // temp Matcher Timeout
                 crate::ApiChannelItem::TimeOut => {
                     use colored::*;
                     tracing::event!(

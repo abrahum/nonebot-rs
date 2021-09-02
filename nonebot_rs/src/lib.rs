@@ -89,13 +89,12 @@
 
 /////////////////////////////////////////////////////////////////////////////////
 
-pub mod action;
-#[doc(hidden)]
-pub mod api;
-#[doc(hidden)]
-pub mod api_resp;
+mod action;
+mod api;
+mod api_resp;
 #[doc(hidden)]
 pub mod axum_driver;
+mod bot;
 /// 内建组件
 pub mod builtin;
 /// nbrs 设置项
@@ -115,6 +114,7 @@ pub mod pyo;
 mod utils;
 
 use std::collections::HashMap;
+use tokio::sync::{mpsc, watch};
 
 #[doc(inline)]
 pub use action::Action;
@@ -124,83 +124,18 @@ pub use api::Api;
 pub use api_resp::ApiResp;
 pub use async_trait::async_trait;
 #[doc(inline)]
+pub use bot::Bot;
+#[doc(inline)]
 #[cfg(feature = "matcher")]
 pub use matcher::matchers::{Matchers, MatchersBTreeMap, MatchersHashMap};
 #[doc(inline)]
 pub use message::Message;
-use tokio::sync::{mpsc, watch};
 
 #[macro_use]
 extern crate lazy_static;
 
 pub type ApiSender = mpsc::Sender<ApiChannelItem>;
 pub type ApiRespWatcher = watch::Receiver<ApiResp>;
-
-/// Bot
-#[derive(Debug, Clone)]
-pub struct Bot {
-    pub config: config::BotConfig,
-    /// 暂存调用 Bot api
-    pub api_sender: mpsc::Sender<ApiChannelItem>,
-    /// 暂存 ApiResp Receiver
-    api_resp_watcher: watch::Receiver<ApiResp>,
-}
-
-impl Bot {
-    pub async fn send_group_msg(&self, group_id: i64, msg: Vec<message::Message>) {
-        self.api_sender
-            .send(ApiChannelItem::Api(api::Api::SendGroupMsg {
-                params: api::SendGroupMsg {
-                    group_id: group_id,
-                    message: msg.clone(),
-                    auto_escape: false,
-                },
-                echo: format!("{}-{:?}", self.config.bot_id, msg),
-            }))
-            .await
-            .unwrap();
-    }
-
-    pub async fn send_private_msg(&self, user_id: i64, msg: Vec<message::Message>) {
-        self.api_sender
-            .send(ApiChannelItem::Api(api::Api::SendPrivateMsg {
-                params: api::SendPrivateMsg {
-                    user_id: user_id,
-                    message: msg.clone(),
-                    auto_escape: false,
-                },
-                echo: format!("{}-{:?}", self.config.bot_id, msg),
-            }))
-            .await
-            .unwrap();
-    }
-
-    pub async fn call_api(&self, api: api::Api) {
-        self.api_sender
-            .send(ApiChannelItem::Api(api))
-            .await
-            .unwrap();
-    }
-
-    pub async fn call_api_resp(&mut self, api: api::Api) -> Option<api_resp::ApiResp> {
-        let echo = api.get_echo();
-        self.api_sender
-            .send(ApiChannelItem::Api(api))
-            .await
-            .unwrap();
-        let time = utils::timestamp();
-        while let Ok(_) = self.api_resp_watcher.changed().await {
-            let resp = self.api_resp_watcher.borrow().clone();
-            if resp.echo == echo {
-                return Some(resp);
-            }
-            if utils::timestamp() > time + 30 {
-                return None;
-            }
-        }
-        None
-    }
-}
 
 /// nbrs 本体
 ///
@@ -258,6 +193,13 @@ impl Nonebot {
                 api_resp_watcher: api_resp_watcher,
             },
         );
+        self.bot_sender.send(self.bots.clone()).unwrap();
+    }
+
+    pub fn remove_bot(&mut self, bot_id: i64) {
+        let bot_id = bot_id.to_string();
+        self.bots.remove(&bot_id).unwrap();
+        self.bot_sender.send(self.bots.clone()).unwrap();
     }
 
     fn check_auth(_auth: Option<String>) -> bool {
@@ -283,6 +225,7 @@ impl Nonebot {
         }
     }
 
+    #[doc(hidden)]
     pub fn pre_run(&self) {
         use colored::*;
         log::init(self.config.global.debug, self.config.global.trace);
@@ -293,6 +236,7 @@ impl Nonebot {
         );
     }
 
+    /// Nonebot EventChannel receive handle
     async fn recv(mut self) {
         while let Some(event_channel_item) = self.event_receiver.recv().await {
             match event_channel_item {
@@ -302,6 +246,7 @@ impl Nonebot {
         }
     }
 
+    /// Nonebot Event handle
     fn handle_event(&mut self, e: event::Event) {
         tracing::event!(tracing::Level::TRACE, "handling events {:?}", e);
         match &e {
@@ -339,6 +284,7 @@ impl Nonebot {
         self.recv().await;
     }
 
+    #[doc(hidden)]
     pub async fn async_run(self) {
         self.pre_run();
         tokio::spawn(axum_driver::run(

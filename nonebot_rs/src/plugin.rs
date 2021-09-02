@@ -1,1 +1,1 @@
-pub fn register_plugin(nb: crate::Nonebot) {}
+// pub fn register_plugin(nb: crate::Nonebot) {}

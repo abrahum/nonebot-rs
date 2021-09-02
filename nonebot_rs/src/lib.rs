@@ -137,7 +137,7 @@ pub type ApiSender = mpsc::Sender<ApiChannelItem>;
 pub type ApiRespWatcher = watch::Receiver<ApiResp>;
 
 /// Bot
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Bot {
     pub config: config::BotConfig,
     /// 暂存调用 Bot api
@@ -214,6 +214,8 @@ pub struct Nonebot {
     event_sender: mpsc::Sender<EventChannelItem>,
     /// Events Receiver
     event_receiver: mpsc::Receiver<EventChannelItem>,
+    /// Bot Sender
+    bot_sender: watch::Sender<HashMap<String, Bot>>,
     #[cfg(feature = "matcher")]
     pub matchers: Matchers,
     #[cfg(feature = "cron")]
@@ -267,11 +269,13 @@ impl Nonebot {
     pub fn new() -> Self {
         let nb_config = config::NbConfig::load();
         let (event_sender, event_recevier) = tokio::sync::mpsc::channel(32);
+        let (bot_sender, _) = watch::channel(HashMap::new());
         Nonebot {
             bots: HashMap::new(),
             config: nb_config,
             event_sender: event_sender,
             event_receiver: event_recevier,
+            bot_sender: bot_sender,
             #[cfg(feature = "matcher")]
             matchers: Matchers::new(None, None, None, None),
             #[cfg(feature = "cron")]

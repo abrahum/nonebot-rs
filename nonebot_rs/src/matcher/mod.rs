@@ -85,8 +85,6 @@ where
     /// 新 Bot 连接时，调用该函数
     fn on_bot_connect(&self, _: Matcher<E>) {}
     /// timeout drop 函数
-    #[cfg(feature = "cron")]
-    fn add_scheule_job(&self, _: tokio_cron_scheduler::JobScheduler, _: Matcher<E>) {}
     fn timeout_drop(&self, _: &Matcher<E>) {}
     /// 匹配函数
     fn match_(&self, event: &mut E) -> bool;

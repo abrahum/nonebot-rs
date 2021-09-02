@@ -16,7 +16,7 @@
 
 计划是实现 Nonebot2 的完整架构，但是由于 rust 的安全性设计，不可避免的出现了一些魔改，正在努力把开发接口包装成类似的样式(是我太菜了)。
 
-API文档地址：[Docs.rs](https://docs.rs/nonebot_rs/0.1.0/nonebot_rs/)
+API文档地址：[Docs.rs](https://docs.rs/nonebot_rs/)
 
 ## 各项目简介
 

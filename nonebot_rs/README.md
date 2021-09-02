@@ -21,7 +21,7 @@ Nonebot-rs 简称 nbrs，是一个基于 Nonebot2 思路的 Onebot 协议机器�
 每个部分均可独立为单个 crate ，通过启动文件向 nbrs 注册 Matcher 后编译启动的方式
 构建一个机器人实例。
 
-API文档地址：[Docs.rs](https://docs.rs/nonebot_rs/0.1.0/nonebot_rs/)
+API文档地址：[Docs.rs](https://docs.rs/nonebot_rs/)
 
 ## nbrs 设计
 

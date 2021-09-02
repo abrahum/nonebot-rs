@@ -7,4 +7,5 @@ edition = "2018"
 
 [dependencies]
 nonebot_rs = { path = "../nonebot_rs", features = ["matcher"] }
+tokio-cron-scheduler = { version = "*" }
 nbrs_matcher_r6s = { path = "../nbrs_matcher_r6s" }

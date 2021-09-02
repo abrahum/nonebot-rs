@@ -1,6 +1,8 @@
 use nbrs_matcher_r6s::r6s;
 use nonebot_rs;
 
+mod clock;
+
 fn main() {
     let mut nb = nonebot_rs::Nonebot::new();
     nb.matchers

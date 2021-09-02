@@ -1,5 +1,3 @@
-#[cfg(all(feature = "matcher", feature = "cron"))]
-pub mod clock;
 /// 内建 echo Matcher
 #[cfg(feature = "matcher")]
 pub mod echo;

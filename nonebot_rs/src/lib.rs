@@ -150,11 +150,11 @@ pub struct Nonebot {
     /// Events Receiver
     event_receiver: mpsc::Receiver<EventChannelItem>,
     /// Bot Sender
-    bot_sender: watch::Sender<HashMap<String, Bot>>,
+    pub bot_sender: watch::Sender<HashMap<String, Bot>>,
+    /// Bot Getter
+    pub bot_getter: watch::Receiver<HashMap<String, Bot>>,
     #[cfg(feature = "matcher")]
     pub matchers: Matchers,
-    #[cfg(feature = "cron")]
-    pub scheduler: tokio_cron_scheduler::JobScheduler,
 }
 
 /// api channel 传递项
@@ -211,17 +211,16 @@ impl Nonebot {
     pub fn new() -> Self {
         let nb_config = config::NbConfig::load();
         let (event_sender, event_recevier) = tokio::sync::mpsc::channel(32);
-        let (bot_sender, _) = watch::channel(HashMap::new());
+        let (bot_sender, bot_getter) = watch::channel(HashMap::new());
         Nonebot {
             bots: HashMap::new(),
             config: nb_config,
             event_sender: event_sender,
             event_receiver: event_recevier,
             bot_sender: bot_sender,
+            bot_getter: bot_getter,
             #[cfg(feature = "matcher")]
             matchers: Matchers::new(None, None, None, None),
-            #[cfg(feature = "cron")]
-            scheduler: tokio_cron_scheduler::JobScheduler::new(),
         }
     }
 

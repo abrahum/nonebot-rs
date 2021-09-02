@@ -766,6 +766,7 @@ version = "0.1.0"
 dependencies = [
  "nbrs_matcher_r6s",
  "nonebot_rs",
+ "tokio-cron-scheduler",
 ]
 
 [[package]]
@@ -803,7 +804,6 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
- "tokio-cron-scheduler",
  "toml",
  "tracing",
  "tracing-subscriber",

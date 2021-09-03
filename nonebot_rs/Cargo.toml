@@ -12,6 +12,7 @@ edition = "2018"
 [features]
 pyo = ["pyo3"]
 matcher = []
+scheduler = ["tokio-cron-scheduler"]
 
 [dependencies]
 tracing-subscriber = "0.2"
@@ -48,3 +49,7 @@ features = ["macros", "rt-multi-thread"]
 [dependencies.futures-util]
 version = "0.3.14"
 features = ["sink"]
+
+[dependencies.tokio-cron-scheduler]
+version = "*"
+optional = true

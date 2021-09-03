@@ -1,18 +1,10 @@
-use tokio_cron_scheduler::{Job, JobScheduler};
+use nonebot_rs::Job;
 
-pub async fn clock(nb: &nonebot_rs::Nonebot) {
+pub fn clock(nb: &nonebot_rs::Nonebot) -> Job {
     let bot_getter = nb.bot_getter.clone();
-    let mut sched = JobScheduler::new();
-
-    sched
-        .add(
-            Job::new("1 * * * * *", move |_, _| {
-                let bot = bot_getter.borrow().clone();
-                println!("{:#?}", bot);
-            })
-            .unwrap(),
-        )
-        .unwrap();
-
-    sched.start().await.unwrap();
+    Job::new("1 * * * * *", move |_, _| {
+        let bot = bot_getter.borrow().clone();
+        println!("{:#?}", bot);
+    })
+    .unwrap()
 }

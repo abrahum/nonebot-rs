@@ -115,6 +115,10 @@ mod utils;
 
 use std::collections::HashMap;
 use tokio::sync::{mpsc, watch};
+#[cfg(feature = "scheduler")]
+pub use tokio_cron_scheduler::Job;
+#[cfg(feature = "scheduler")]
+use tokio_cron_scheduler::JobScheduler;
 
 #[doc(inline)]
 pub use action::Action;
@@ -155,6 +159,8 @@ pub struct Nonebot {
     pub bot_getter: watch::Receiver<HashMap<String, Bot>>,
     #[cfg(feature = "matcher")]
     pub matchers: Matchers,
+    #[cfg(feature = "scheduler")]
+    pub scheduler: JobScheduler,
 }
 
 /// api channel 传递项
@@ -221,6 +227,8 @@ impl Nonebot {
             bot_getter: bot_getter,
             #[cfg(feature = "matcher")]
             matchers: Matchers::new(None, None, None, None),
+            #[cfg(feature = "scheduler")]
+            scheduler: JobScheduler::new(),
         }
     }
 
@@ -280,6 +288,8 @@ impl Nonebot {
             self.config.global.port,
             self.event_sender.clone(),
         ));
+        #[cfg(feature = "scheduler")]
+        tokio::spawn(self.scheduler.start());
         self.recv().await;
     }
 

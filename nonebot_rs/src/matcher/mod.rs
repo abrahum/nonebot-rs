@@ -13,6 +13,7 @@ pub mod api;
 pub mod matchers;
 #[doc(hidden)]
 pub mod message_event_matcher;
+pub mod prelude;
 #[doc(hidden)]
 pub mod set_get;
 

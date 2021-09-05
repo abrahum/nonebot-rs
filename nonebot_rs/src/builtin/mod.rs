@@ -12,6 +12,9 @@ pub mod rcnb;
 /// 内建 rules
 #[cfg(feature = "matcher")]
 pub mod rules;
+/// Bot Status
+#[cfg(feature = "matcher")]
+pub mod bot_status;
 
 use crate::event::{MessageEvent, MetaEvent};
 use colored::*;

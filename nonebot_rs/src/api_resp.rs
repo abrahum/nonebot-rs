@@ -9,92 +9,143 @@ pub struct ApiResp {
     pub echo: String,
 }
 
+// impl ApiResp {
+//     pub fn get_date<D>(&self) -> Option<D> {
+//         match self.data {
+//             RespData::MessageId(d) => Some(d),
+//             _ => None,
+//         }
+//     }
+// }
+
 /// Onebot Api 响应 data 字段
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum RespData {
     None,
-    MessageId {
-        message_id: i32,
-    },
-    Message {
-        time: i32,
-        message_type: String,
-        message_id: i32,
-        real_id: i32,
-        sender: Sender,
-        message: Vec<crate::message::Message>,
-    },
-    Messages {
-        message: Vec<crate::message::Message>,
-    },
-    LoginInfo {
-        user_id: i64,
-        nickname: String,
-    },
-    StrangerInfo {
-        user_id: i64,
-        nickname: String,
-        sex: String,
-        age: i32,
-    },
+    MessageId(MessageId),
+    Message(Message),
+    Messages(Messages),
+    LoginInfo(LoginInfo),
+    StrangerInfo(StrangerInfo),
     FriendList(Vec<FriendListItem>),
-    GroupInfo {
-        groupp_id: i64,
-        group_name: String,
-        member_count: i32,
-        max_member_count: i32,
-    },
+    GroupInfo(GroupInfo),
     GroupList(Vec<GroupListItem>),
-    GroupMemberInfo {
-        groupp_id: i64,
-        user_id: i64,
-        nickname: String,
-        card: String,
-        sex: String,
-        age: i32,
-        area: String,
-        join_time: i32,
-        last_sent_time: i32,
-        level: String,
-        role: String,
-        unfriendly: bool,
-        title: String,
-        title_expire_time: i32,
-        card_changeable: bool,
-    },
+    GroupMemberInfo(GroupMemberInfo),
     GroupMemberList(Vec<GroupMember>),
-    GroupHonorInfo {
-        group_id: i64,
-        current_talkative: Option<CurrentTalkative>,
-        talkative_list: Option<Vec<HonorItem>>,
-        performer_list: Option<Vec<HonorItem>>,
-        legend_list: Option<Vec<HonorItem>>,
-        strong_newbie_list: Option<Vec<HonorItem>>,
-        emotion_list: Option<Vec<HonorItem>>,
-    },
-    Cookies {
-        cookies: String,
-    },
-    ScrfToken {
-        token: i32,
-    },
-    Credentials {
-        cookies: String,
-        token: i32,
-    },
-    File {
-        file: String,
-    },
-    SendCheck {
-        yes: bool,
-    },
+    GroupHonorInfo(GroupHonorInfo),
+    Cookies(Cookies),
+    ScrfToken(ScrfToken),
+    Credentials(Credentials),
+    File(File),
+    SendCheck(SendCheck),
     Status(crate::event::Status),
-    VersionInfo {
-        app_name: String,
-        app_version: String,
-        protocol_version: String,
-    },
+    VersionInfo(VersionInfo),
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct MessageId {
+    pub message_id: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Message {
+    pub time: i32,
+    pub message_type: String,
+    pub message_id: i32,
+    pub real_id: i32,
+    pub sender: Sender,
+    pub message: Vec<crate::message::Message>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Messages {
+    pub message: Vec<crate::message::Message>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct LoginInfo {
+    pub user_id: i64,
+    pub nickname: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct StrangerInfo {
+    pub user_id: i64,
+    pub nickname: String,
+    pub sex: String,
+    pub age: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GroupInfo {
+    pub groupp_id: i64,
+    pub group_name: String,
+    pub member_count: i32,
+    pub max_member_count: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GroupMemberInfo {
+    pub groupp_id: i64,
+    pub user_id: i64,
+    pub nickname: String,
+    pub card: String,
+    pub sex: String,
+    pub age: i32,
+    pub area: String,
+    pub join_time: i32,
+    pub last_sent_time: i32,
+    pub level: String,
+    pub role: String,
+    pub unfriendly: bool,
+    pub title: String,
+    pub title_expire_time: i32,
+    pub card_changeable: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GroupHonorInfo {
+    pub group_id: i64,
+    pub current_talkative: Option<CurrentTalkative>,
+    pub talkative_list: Option<Vec<HonorItem>>,
+    pub performer_list: Option<Vec<HonorItem>>,
+    pub legend_list: Option<Vec<HonorItem>>,
+    pub strong_newbie_list: Option<Vec<HonorItem>>,
+    pub emotion_list: Option<Vec<HonorItem>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Cookies {
+    pub cookies: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ScrfToken {
+    pub token: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Credentials {
+    pub cookies: String,
+    pub token: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct File {
+    pub file: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SendCheck {
+    pub yes: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct VersionInfo {
+    pub app_name: String,
+    pub app_version: String,
+    pub protocol_version: String,
 }
 
 /// Onebot Api get_friend_list 响应数组成员

@@ -6,6 +6,9 @@ use tracing::{event, Level};
 /// Bot
 #[derive(Debug, Clone)]
 pub struct Bot {
+    /// connect timestamp
+    pub connect_time: i64,
+    // Bot Config
     pub config: config::BotConfig,
     /// 暂存调用 Bot api
     pub api_sender: mpsc::Sender<ApiChannelItem>,

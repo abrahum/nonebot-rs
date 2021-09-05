@@ -196,6 +196,7 @@ impl Nonebot {
         self.bots.insert(
             bot_id.clone(),
             Bot {
+                connect_time: utils::timestamp(),
                 config: self.config.gen_bot_config(&bot_id),
                 api_sender: api_sender,
                 api_resp_watcher: api_resp_watcher,

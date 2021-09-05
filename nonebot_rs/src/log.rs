@@ -1,7 +1,7 @@
+pub use colored;
 #[cfg(feature = "matcher")]
 use colored::*;
-#[cfg(feature = "matcher")]
-use tracing::{event, Level};
+pub use tracing::{event, Level};
 
 pub fn init(debug: bool, trace: Option<bool>) {
     if debug {

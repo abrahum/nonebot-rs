@@ -108,7 +108,7 @@ pub struct FriendListItem {
 /// Onebot Api get_group_list 响应数组成员
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GroupListItem {
-    pub groupp_id: i64,
+    pub group_id: i64,
     pub group_name: String,
     pub member_count: i32,
     pub max_member_count: i32,

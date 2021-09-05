@@ -90,7 +90,9 @@
 /////////////////////////////////////////////////////////////////////////////////
 
 mod action;
-mod api;
+/// Onebot Api
+pub mod api;
+#[doc(hidden)]
 mod api_resp;
 #[doc(hidden)]
 pub mod axum_driver;
@@ -101,7 +103,8 @@ pub mod builtin;
 pub mod config;
 /// Onebot 事件
 pub mod event;
-mod log;
+/// logger
+pub mod log;
 /// Matcher 定义
 #[cfg(feature = "matcher")]
 pub mod matcher;
@@ -122,10 +125,9 @@ use tokio_cron_scheduler::JobScheduler;
 
 #[doc(inline)]
 pub use action::Action;
+pub use api::*;
 #[doc(inline)]
-pub use api::Api;
-#[doc(inline)]
-pub use api_resp::ApiResp;
+pub use api_resp::{ApiResp, RespData};
 pub use async_trait::async_trait;
 #[doc(inline)]
 pub use bot::Bot;
@@ -204,7 +206,7 @@ impl Nonebot {
 
     pub fn remove_bot(&mut self, bot_id: i64) {
         let bot_id = bot_id.to_string();
-        self.bots.remove(&bot_id).unwrap();
+        self.bots.remove(&bot_id).expect("");
         self.bot_sender.send(self.bots.clone()).unwrap();
     }
 

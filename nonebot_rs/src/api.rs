@@ -88,7 +88,7 @@ pub enum Api {
     },
     #[serde(rename = "get_group_honor_info")]
     GetGroupHonorInfo {
-        params: GetGroupMemberList,
+        params: GetGroupHonorInfo,
         echo: String,
     },
     #[serde(rename = "get_cookies")]
@@ -110,22 +110,43 @@ pub enum Api {
     #[serde(rename = "get_version_info")]
     GetVersionInfo { params: Option<i8>, echo: String },
     #[serde(rename = "set_restart")]
-    GetRestart { params: GetRestart, echo: String },
+    SetRestart { params: SetRestart, echo: String },
     #[serde(rename = "clean_cache")]
     CleanCache { params: Option<i8>, echo: String },
 }
 
 macro_rules! echos {
     ($($x: tt),*) => {
-    pub fn get_echo(&self) -> String {
-        match self {
-        $(Api::$x {
-            params: _,
-            echo: echo,
-            } => echo.clone(),
-        )*
-    }
+        pub fn get_echo(&self) -> String {
+            match self {
+                $(Api::$x {
+                    params: _,
+                    echo: echo,
+                } => echo.clone(),)*
+            }
+        }
+    };
 }
+
+macro_rules! no_params_builder {
+    ($(($fn_name: ident, $api_type: tt)),*) => {
+        $(pub fn $fn_name() -> Api {
+            Api::$api_type {
+                params: None,
+                echo: format!("{}-{}", stringify!($api_type), crate::utils::timestamp()),
+            }
+        })*
+    };
+}
+
+macro_rules! params_builder {
+    ($(($fn_name: ident, $api_type: tt)),*) => {
+        $(pub fn $fn_name(params: $api_type) -> Api {
+            Api::$api_type {
+                params: params,
+                echo: format!("{}-{}", stringify!($api_type), crate::utils::timestamp()),
+            }
+        })*
     };
 }
 
@@ -171,8 +192,63 @@ impl Api {
         CanSendRecord,
         GetStatus,
         GetVersionInfo,
-        GetRestart,
+        SetRestart,
         CleanCache
+    );
+
+    // pub fn get_group_list() -> Api {
+    //     Api::GetGroupList {
+    //         params: None,
+    //         echo: format!("{},{}", "GetGroupList", crate::utils::timestamp()),
+    //     }
+    // }
+    no_params_builder!(
+        (get_login_info, GetLoginInfo),
+        (get_friend_list, GetFriendList),
+        (get_group_list, GetGroupList),
+        (get_csrf_token, GetCsrfToken),
+        (can_send_image, CanSendImage),
+        (can_send_record, CanSendRecord),
+        (get_status, GetStatus),
+        (get_version_info, GetVersionInfo),
+        (clean_cache, CleanCache)
+    );
+
+    // pub fn send_private_msg(params: SendPrivateMsg) -> Api {
+    //     Api::SendPrivateMsg {
+    //         params: params,
+    //         echo: format!("{}-{}", "SendGroupMsg", crate::utils::timestamp()),
+    //     }
+    // }
+    params_builder!(
+        (send_private_msg, SendPrivateMsg),
+        (send_group_msg, SendGroupMsg),
+        (send_msg, SendMsg),
+        (delete_msg, DeleteMsg),
+        (get_msg, GetMsg),
+        (get_forward_msg, GetForwardMsg),
+        (send_like, SendLike),
+        (set_group_kick, SetGroupKick),
+        (set_group_ban, SetGroupBan),
+        (set_group_anonymous_ban, SetGroupAnonymousBan),
+        (set_group_whole_ban, SetGroupWholeBan),
+        (set_group_admin, SetGroupAdmin),
+        (set_group_anonymous, SetGroupAnonymous),
+        (set_group_card, SetGroupCard),
+        (set_group_name, SetGroupName),
+        (set_group_leave, SetGroupLeave),
+        (set_group_special_title, SetGroupSpecialTitle),
+        (set_friend_add_request, SetFriendAddRequest),
+        (set_group_add_request, SetGroupAddRequest),
+        (get_stranger_info, GetStrangerInfo),
+        (get_group_info, GetGroupInfo),
+        (get_group_member_info, GetGroupMemberInfo),
+        (get_group_honor_info, GetGroupHonorInfo),
+        (get_cookies, GetCookies),
+        (get_credentials, GetCookies),
+        (get_record, GetRecord),
+        (get_image, GetImage),
+        (set_restart, SetRestart)
     );
 }
 
@@ -351,6 +427,6 @@ pub struct GetImage {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct GetRestart {
+pub struct SetRestart {
     delay: i64,
 }

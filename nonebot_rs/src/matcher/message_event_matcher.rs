@@ -102,10 +102,10 @@ impl Matcher<MessageEvent> {
     pub async fn send(&self, msg: Vec<crate::message::Message>) {
         match self.event.clone().unwrap() {
             MessageEvent::Private(p) => {
-                let info = format!("Send {:?} to {}({})", msg, p.sender.nickname, p.user_id,);
                 tevent!(
                     Level::INFO,
-                    "Send {:?} to {}({})",
+                    "Bot [{}] Send {:?} to {}({})",
+                    p.self_id.to_string().red(),
                     msg,
                     p.sender.nickname.blue(),
                     p.user_id.to_string().green(),
@@ -114,36 +114,34 @@ impl Matcher<MessageEvent> {
                     .api_sender
                     .clone()
                     .unwrap()
-                    .send(ApiChannelItem::Api(crate::api::Api::SendPrivateMsg {
-                        params: crate::api::SendPrivateMsg {
+                    .send(ApiChannelItem::Api(crate::Api::send_private_msg(
+                        crate::SendPrivateMsg {
                             user_id: p.user_id,
                             message: msg,
                             auto_escape: false,
                         },
-                        echo: info,
-                    }))
+                    )))
                     .await
                     .unwrap();
             }
             MessageEvent::Group(g) => {
-                let info = format!("Send {:?} to group ({})", msg, g.group_id,);
                 tevent!(
                     Level::INFO,
-                    "Send {:?} to group ({})",
+                    "Bot [{}] Send {:?} to group ({})",
+                    g.self_id.to_string().red(),
                     msg,
                     g.group_id.to_string().magenta(),
                 );
                 self.api_sender
                     .clone()
                     .unwrap()
-                    .send(ApiChannelItem::Api(crate::api::Api::SendGroupMsg {
-                        params: crate::api::SendGroupMsg {
+                    .send(ApiChannelItem::Api(crate::Api::send_group_msg(
+                        crate::SendGroupMsg {
                             group_id: g.group_id,
                             message: msg,
                             auto_escape: false,
                         },
-                        echo: info,
-                    }))
+                    )))
                     .await
                     .unwrap();
             }

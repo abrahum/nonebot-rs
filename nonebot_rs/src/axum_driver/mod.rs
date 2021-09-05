@@ -84,22 +84,31 @@ async fn stream_recv(
     event_sender: &mpsc::Sender<crate::EventChannelItem>,
     apiresp_watch_sender: &watch::Sender<crate::api_resp::ApiResp>,
     bot_id: i64,
-) -> futures_util::stream::SplitStream<axum::ws::WebSocket> {
+) -> Option<futures_util::stream::SplitStream<axum::ws::WebSocket>> {
     let (msg, next_stream) = stream.into_future().await;
     if let Some(msg) = msg {
         use crate::event::RecvItem;
         if let Ok(msg) = msg {
-            let data: RecvItem = serde_json::from_str(msg.to_str().unwrap()).unwrap();
-            match data {
-                RecvItem::Event(event) => {
-                    event_sender
-                        .send(crate::EventChannelItem::Event(event))
-                        .await
-                        .unwrap();
+            let data: serde_json::Result<RecvItem> = serde_json::from_str(msg.to_str().unwrap());
+            if let Ok(data) = data {
+                match data {
+                    RecvItem::Event(event) => {
+                        event_sender
+                            .send(crate::EventChannelItem::Event(event))
+                            .await
+                            .unwrap();
+                    }
+                    RecvItem::ApiResp(api_resp) => {
+                        apiresp_watch_sender.send(api_resp).unwrap();
+                    }
                 }
-                RecvItem::ApiResp(api_resp) => {
-                    apiresp_watch_sender.send(api_resp).unwrap();
-                }
+            } else {
+                tracing::event!(
+                    tracing::Level::ERROR,
+                    "Serialize Msg failed! Msg:{:?}",
+                    msg.to_str().unwrap()
+                );
+                std::process::exit(101);
             }
         } else {
             tracing::event!(
@@ -114,9 +123,10 @@ async fn stream_recv(
                 }))
                 .await
                 .unwrap();
+            return None;
         }
     }
-    next_stream
+    Some(next_stream)
 }
 
 async fn handle_socket(
@@ -133,7 +143,11 @@ async fn handle_socket(
     let income = async move {
         loop {
             let r = stream_recv(stream, &another_event_sender, &apiresp_watch_sender, bot_id).await;
-            stream = r;
+            if let Some(s) = r {
+                stream = s;
+            } else {
+                return;
+            }
         }
     };
     // 发送消息

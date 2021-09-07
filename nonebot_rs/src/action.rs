@@ -49,11 +49,10 @@ impl crate::Nonebot {
                 api_resp_watcher,
             } => {
                 if crate::Nonebot::check_auth(auth) {
-                    self.add_bot(bot_id, api_sender.clone(), api_resp_watcher.clone());
+                    let bot = self.add_bot(bot_id, api_sender.clone(), api_resp_watcher.clone());
                     event!(Level::DEBUG, "Add Bot [{}]", bot_id);
                     #[cfg(feature = "matcher")]
-                    self.matchers
-                        .run_on_connect(api_sender.clone(), api_resp_watcher.clone());
+                    self.matchers.run_on_connect(bot);
                 } else {
                     event!(Level::WARN, "Bot [{}] authorize failure", bot_id);
                 }

@@ -6,18 +6,14 @@ where
     E: Clone,
 {
     /// 设置 Matcher 的 api_sender 与 api_resp_watcher
-    pub fn build(
-        &self,
-        api_sender: crate::ApiSender,
-        api_resp_watcher: crate::ApiRespWatcher,
-    ) -> Matcher<E> {
+    pub fn build(&self, bot: crate::bot::Bot) -> Matcher<E> {
         let mut m = self.clone();
-        if let None = &m.api_sender {
-            m.api_sender = Some(api_sender);
+        if let None = &m.bot {
+            m.bot = Some(bot);
         }
-        m.api_resp_watcher = Some(api_resp_watcher);
         m
     }
+
     /// 设置 priority
     pub fn set_priority(&mut self, priority: i8) -> Matcher<E> {
         self.priority = priority;

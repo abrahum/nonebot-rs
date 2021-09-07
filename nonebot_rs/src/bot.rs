@@ -6,6 +6,8 @@ use tracing::{event, Level};
 /// Bot
 #[derive(Debug, Clone)]
 pub struct Bot {
+    /// bot id
+    pub bot_id: i64,
     /// connect timestamp
     pub connect_time: i64,
     // Bot Config
@@ -17,6 +19,20 @@ pub struct Bot {
 }
 
 impl Bot {
+    pub fn new(
+        bot_id: i64,
+        config: config::BotConfig,
+        api_sender: mpsc::Sender<ApiChannelItem>,
+        api_resp_watcher: watch::Receiver<ApiResp>,
+    ) -> Self {
+        Bot {
+            bot_id: bot_id,
+            connect_time: crate::utils::timestamp(),
+            config: config,
+            api_sender: api_sender,
+            api_resp_watcher: api_resp_watcher,
+        }
+    }
     /// Send Group Msg
     pub async fn send_group_msg(&self, group_id: i64, msg: Vec<message::Message>) {
         self.api_sender
@@ -74,7 +90,7 @@ impl Bot {
     }
 
     /// same as Matcher
-    pub async fn call_api_resp(&mut self, api: crate::Api) -> Option<api_resp::ApiResp> {
+    pub async fn call_api_resp(&self, api: crate::Api) -> Option<api_resp::ApiResp> {
         let echo = api.get_echo();
         self.api_sender
             .send(ApiChannelItem::Api(api.clone()))
@@ -87,7 +103,8 @@ impl Bot {
             api
         );
         let time = utils::timestamp();
-        while let Ok(_) = self.api_resp_watcher.changed().await {
+        let mut watcher = self.api_resp_watcher.clone();
+        while let Ok(_) = watcher.changed().await {
             let resp = self.api_resp_watcher.borrow().clone();
             if resp.echo == echo {
                 return Some(resp);

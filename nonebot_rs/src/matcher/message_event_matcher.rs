@@ -48,16 +48,17 @@ impl Matcher<MessageEvent> {
             crate::on_match_all!();
             async fn handle(&self, event: MessageEvent, matcher: Matcher<MessageEvent>) {
                 matcher
-                    .api_sender
+                    .bot
                     .clone()
                     .unwrap()
+                    .api_sender
                     .send(ApiChannelItem::MessageEvent(event))
                     .await
                     .unwrap();
             }
 
             fn timeout_drop(&self, matcher: &Matcher<MessageEvent>) {
-                let sender = matcher.api_sender.clone().unwrap();
+                let sender = matcher.bot.clone().unwrap().api_sender;
                 tokio::spawn(async move { sender.send(ApiChannelItem::TimeOut).await.unwrap() });
             }
         }
@@ -65,7 +66,13 @@ impl Matcher<MessageEvent> {
         let (sender, mut receiver) = tokio::sync::mpsc::channel::<ApiChannelItem>(4);
         let event = self.event.clone().unwrap();
         let mut m = build_temp_message_event_matcher(&event, Temp {});
-        m.api_sender = Some(sender);
+        let bot = crate::bot::Bot::new(
+            0,
+            crate::config::BotConfig::default(),
+            sender,
+            self.bot.clone().unwrap().api_resp_watcher.clone(),
+        );
+        m.bot = Some(bot);
         self.set_message_matcher(m).await;
 
         if let Some(msg) = msg {
@@ -102,48 +109,26 @@ impl Matcher<MessageEvent> {
     pub async fn send(&self, msg: Vec<crate::message::Message>) {
         match self.event.clone().unwrap() {
             MessageEvent::Private(p) => {
-                tevent!(
-                    Level::INFO,
-                    "Bot [{}] Send {:?} to {}({})",
-                    p.self_id.to_string().red(),
-                    msg,
-                    p.sender.nickname.blue(),
-                    p.user_id.to_string().green(),
-                );
-                &self
-                    .api_sender
-                    .clone()
-                    .unwrap()
-                    .send(ApiChannelItem::Api(crate::Api::send_private_msg(
-                        crate::SendPrivateMsg {
-                            user_id: p.user_id,
-                            message: msg,
-                            auto_escape: false,
-                        },
-                    )))
-                    .await
-                    .unwrap();
+                if let Some(bot) = &self.bot {
+                    bot.send_private_msg(p.user_id, msg).await;
+                } else {
+                    tevent!(
+                        Level::ERROR,
+                        "{}",
+                        "Sending msg with unbuilt matcher!".red()
+                    );
+                }
             }
             MessageEvent::Group(g) => {
-                tevent!(
-                    Level::INFO,
-                    "Bot [{}] Send {:?} to group ({})",
-                    g.self_id.to_string().red(),
-                    msg,
-                    g.group_id.to_string().magenta(),
-                );
-                self.api_sender
-                    .clone()
-                    .unwrap()
-                    .send(ApiChannelItem::Api(crate::Api::send_group_msg(
-                        crate::SendGroupMsg {
-                            group_id: g.group_id,
-                            message: msg,
-                            auto_escape: false,
-                        },
-                    )))
-                    .await
-                    .unwrap();
+                if let Some(bot) = &self.bot {
+                    bot.send_group_msg(g.group_id, msg).await;
+                } else {
+                    tevent!(
+                        Level::ERROR,
+                        "{}",
+                        "Sending msg with unbuilt matcher!".red()
+                    );
+                }
             }
         }
     }

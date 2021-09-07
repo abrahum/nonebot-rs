@@ -191,18 +191,16 @@ impl Nonebot {
         bot_id: i64,
         api_sender: mpsc::Sender<ApiChannelItem>,
         api_resp_watcher: watch::Receiver<ApiResp>,
-    ) {
-        let bot_id = bot_id.to_string();
-        self.bots.insert(
-            bot_id.clone(),
-            Bot {
-                connect_time: utils::timestamp(),
-                config: self.config.gen_bot_config(&bot_id),
-                api_sender: api_sender,
-                api_resp_watcher: api_resp_watcher,
-            },
+    ) -> Bot {
+        let bot = Bot::new(
+            bot_id,
+            self.config.gen_bot_config(&bot_id.to_string()),
+            api_sender,
+            api_resp_watcher,
         );
+        self.bots.insert(bot_id.to_string(), bot.clone());
         self.bot_sender.send(self.bots.clone()).unwrap();
+        bot
     }
 
     pub fn remove_bot(&mut self, bot_id: i64) {
@@ -273,12 +271,8 @@ impl Nonebot {
         {
             use event::SelfId;
             let bot = self.bots.get(&e.get_self_id()).unwrap();
-            self.matchers.handle_events(
-                e,
-                bot.config.clone(),
-                bot.api_sender.clone(),
-                bot.api_resp_watcher.clone(),
-            )
+            self.matchers
+                .handle_events(e, bot.config.clone(), bot.clone())
         }
     }
 

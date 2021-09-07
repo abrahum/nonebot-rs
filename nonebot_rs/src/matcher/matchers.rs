@@ -2,7 +2,6 @@ use crate::config::BotConfig;
 use crate::event::{Event, MessageEvent, MetaEvent, NoticeEvent, RequestEvent, SelfId};
 use crate::log::log_load_matchers;
 use crate::matcher::Matcher;
-use crate::{ApiRespWatcher, ApiSender};
 use std::collections::{BTreeMap, HashMap};
 use tracing::{event, Level};
 
@@ -48,22 +47,15 @@ impl Matchers {
     }
 
     /// Bot 连接时运行所有 Matcher on_bot_connect 方法
-    pub fn run_on_connect(
-        &self,
-        api_sender: crate::ApiSender,
-        api_resp_watcher: crate::ApiRespWatcher,
-    ) {
-        fn run_on_connect_<E>(
-            matcherb: &MatchersBTreeMap<E>,
-            api_sender: crate::ApiSender,
-            api_resp_watcher: crate::ApiRespWatcher,
-        ) where
+    pub fn run_on_connect(&self, bot: crate::bot::Bot) {
+        fn run_on_connect_<E>(matcherb: &MatchersBTreeMap<E>, bot: crate::bot::Bot)
+        where
             E: Clone,
         {
             for (_, matcherh) in matcherb {
                 for (_, matcher) in matcherh {
                     matcher
-                        .build(api_sender.clone(), api_resp_watcher.clone())
+                        .build(bot.clone())
                         .get_handler()
                         .on_bot_connect(matcher.clone());
                 }
@@ -71,10 +63,10 @@ impl Matchers {
         }
 
         log_load_matchers(&self);
-        run_on_connect_(&self.message, api_sender.clone(), api_resp_watcher.clone());
-        run_on_connect_(&self.notice, api_sender.clone(), api_resp_watcher.clone());
-        run_on_connect_(&self.request, api_sender.clone(), api_resp_watcher.clone());
-        run_on_connect_(&self.meta, api_sender.clone(), api_resp_watcher.clone());
+        run_on_connect_(&self.message, bot.clone());
+        run_on_connect_(&self.notice, bot.clone());
+        run_on_connect_(&self.request, bot.clone());
+        run_on_connect_(&self.meta, bot.clone());
     }
 
     /// 向 Matchers 添加 Matcher<MessageEvent>
@@ -141,55 +133,21 @@ impl Matchers {
         disable_matcher_(&mut self.meta, name, disable);
     }
 
-    pub fn handle_events(
-        &self,
-        events: Event,
-        config: BotConfig,
-        api_sender: ApiSender,
-        api_resp_watcher: ApiRespWatcher,
-    ) {
+    pub fn handle_events(&self, events: Event, config: BotConfig, bot: crate::bot::Bot) {
         let mut matchers = self.clone();
         tokio::spawn(async move {
             match events {
                 Event::Message(e) => {
-                    Matchers::handle_event(
-                        &mut matchers.message,
-                        e,
-                        config,
-                        api_sender,
-                        api_resp_watcher,
-                    )
-                    .await;
+                    Matchers::handle_event(&mut matchers.message, e, config, bot.clone()).await;
                 }
                 Event::Notice(e) => {
-                    Matchers::handle_event(
-                        &mut matchers.notice,
-                        e,
-                        config,
-                        api_sender,
-                        api_resp_watcher,
-                    )
-                    .await;
+                    Matchers::handle_event(&mut matchers.notice, e, config, bot.clone()).await;
                 }
                 Event::Request(e) => {
-                    Matchers::handle_event(
-                        &mut matchers.request,
-                        e,
-                        config,
-                        api_sender,
-                        api_resp_watcher,
-                    )
-                    .await;
+                    Matchers::handle_event(&mut matchers.request, e, config, bot.clone()).await;
                 }
                 Event::Meta(e) => {
-                    Matchers::handle_event(
-                        &mut matchers.meta,
-                        e,
-                        config,
-                        api_sender,
-                        api_resp_watcher,
-                    )
-                    .await;
+                    Matchers::handle_event(&mut matchers.meta, e, config, bot.clone()).await;
                 }
             }
         });
@@ -200,23 +158,14 @@ impl Matchers {
         matcherb: &mut crate::MatchersBTreeMap<E>,
         e: E,
         config: BotConfig,
-        api_sender: ApiSender,
-        api_resp_watcher: ApiRespWatcher,
+        bot: crate::bot::Bot,
     ) where
         E: Clone + Send + 'static + std::fmt::Debug + SelfId,
     {
         event!(Level::TRACE, "handling event {:?}", e);
         // 根据不同 Event 类型，逐级匹配，判定是否 Block
         for (_, matcherh) in matcherb.iter_mut() {
-            if Matchers::handler_event_(
-                matcherh,
-                e.clone(),
-                config.clone(),
-                api_sender.clone(),
-                api_resp_watcher.clone(),
-            )
-            .await
-            {
+            if Matchers::handler_event_(matcherh, e.clone(), config.clone(), bot.clone()).await {
                 break;
             };
         }
@@ -228,8 +177,7 @@ impl Matchers {
         matcherh: &mut crate::MatchersHashMap<E>,
         e: E,
         config: BotConfig,
-        api_sender: ApiSender,
-        api_resp_watcher: ApiRespWatcher,
+        bot: crate::bot::Bot,
     ) -> bool
     where
         E: Clone + Send + 'static + std::fmt::Debug + SelfId,
@@ -239,7 +187,7 @@ impl Matchers {
         let mut get_block = false;
         for (name, matcher) in matcherh.iter_mut() {
             let matched = matcher
-                .build(api_sender.clone(), api_resp_watcher.clone())
+                .build(bot.clone())
                 .match_(e.clone(), config.clone())
                 .await;
             if matched {

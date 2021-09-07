@@ -46,6 +46,17 @@ pub struct BotConfig {
     pub command_starts: Vec<String>,
 }
 
+impl Default for BotConfig {
+    fn default() -> Self {
+        BotConfig {
+            bot_id: String::new(),
+            superusers: vec![],
+            nicknames: vec![],
+            command_starts: vec![],
+        }
+    }
+}
+
 impl Default for NbConfig {
     fn default() -> Self {
         NbConfig {

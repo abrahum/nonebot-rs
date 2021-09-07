@@ -13,7 +13,7 @@ pub fn clock(nb: &nonebot_rs::Nonebot) -> Job {
 }
 
 // Just for test
-async fn get_and_send_group_count(mut bot: nonebot_rs::Bot) {
+async fn get_and_send_group_count(bot: nonebot_rs::Bot) {
     let data = bot.call_api_resp(nonebot_rs::Api::get_group_list()).await;
     if let Some(resp) = data {
         if let nonebot_rs::RespData::GroupList(glist) = &resp.data {

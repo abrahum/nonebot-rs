@@ -243,6 +243,7 @@ impl Api {
         (get_stranger_info, GetStrangerInfo),
         (get_group_info, GetGroupInfo),
         (get_group_member_info, GetGroupMemberInfo),
+        (get_group_member_list, GetGroupMemberList),
         (get_group_honor_info, GetGroupHonorInfo),
         (get_cookies, GetCookies),
         (get_credentials, GetCookies),
@@ -312,121 +313,121 @@ pub struct SetGroupBan {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SetGroupAnonymousBan {
-    group_id: i64,
-    anonymous: crate::event::Anoymous,
-    flag: String,
-    duration: i64,
+    pub group_id: i64,
+    pub anonymous: crate::event::Anoymous,
+    pub flag: String,
+    pub duration: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SetGroupWholeBan {
-    group_id: i64,
-    enable: bool,
+    pub group_id: i64,
+    pub enable: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SetGroupAdmin {
-    group_id: i64,
-    user_id: i64,
-    enable: bool,
+    pub group_id: i64,
+    pub user_id: i64,
+    pub enable: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SetGroupAnonymous {
-    group_id: i64,
-    enable: bool,
+    pub group_id: i64,
+    pub enable: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SetGroupCard {
-    group_id: i64,
-    user_id: i64,
-    card: String,
+    pub group_id: i64,
+    pub user_id: i64,
+    pub card: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SetGroupName {
-    group_id: i64,
-    group_name: String,
+    pub group_id: i64,
+    pub group_name: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SetGroupLeave {
-    group_id: i64,
-    is_dismiss: bool,
+    pub group_id: i64,
+    pub is_dismiss: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SetGroupSpecialTitle {
-    group_id: i64,
-    user_id: i64,
-    special_title: String,
-    duration: i64,
+    pub group_id: i64,
+    pub user_id: i64,
+    pub special_title: String,
+    pub duration: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SetFriendAddRequest {
-    flag: String,
-    approve: bool,
-    remark: String,
+    pub flag: String,
+    pub approve: bool,
+    pub remark: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SetGroupAddRequest {
-    flag: String,
-    sub_type: String,
-    approve: bool,
-    reason: String,
+    pub flag: String,
+    pub sub_type: String,
+    pub approve: bool,
+    pub reason: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetStrangerInfo {
-    user_id: i64,
-    no_cache: bool,
+    pub user_id: i64,
+    pub no_cache: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetGroupInfo {
-    group_id: i64,
-    no_cache: bool,
+    pub group_id: i64,
+    pub no_cache: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetGroupMemberInfo {
-    group_id: i64,
-    user_id: i64,
-    no_cache: bool,
+    pub group_id: i64,
+    pub user_id: i64,
+    pub no_cache: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetGroupMemberList {
-    group_id: i64,
+    pub group_id: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetGroupHonorInfo {
-    group_id: i64,
+    pub group_id: i64,
     #[serde(rename = "type")]
-    type_: String,
+    pub type_: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetCookies {
-    domain: String,
+    pub domain: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetRecord {
-    file: String,
-    out_format: String,
+    pub file: String,
+    pub out_format: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetImage {
-    file: String,
+    pub file: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SetRestart {
-    delay: i64,
+    pub delay: i64,
 }

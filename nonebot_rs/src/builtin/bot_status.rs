@@ -13,23 +13,13 @@ impl Handler<MessageEvent> for Status {
 }
 
 async fn build_status(event: &MessageEvent, matcher: &Matcher<MessageEvent>) -> String {
-    let friend_count = match matcher
-        .call_api_resp(crate::Api::get_friend_list())
-        .await
-        .unwrap()
-        .data
-    {
-        crate::RespData::FriendList(flist) => flist.len(),
-        _ => 0,
+    let friend_count = match matcher.get_friend_list().await {
+        Some(flist) => flist.len(),
+        None => 0,
     };
-    let group_count = match matcher
-        .call_api_resp(crate::Api::get_group_list())
-        .await
-        .unwrap()
-        .data
-    {
-        crate::RespData::GroupList(glist) => glist.len(),
-        _ => 0,
+    let group_count = match matcher.get_group_list().await {
+        Some(glist) => glist.len(),
+        None => 0,
     };
     format!(
         "当前BotId：{}\n已加载好友数量：{}\n已加载群数量：{}",

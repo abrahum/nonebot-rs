@@ -33,4 +33,30 @@ where
             None
         }
     }
+
+    pub async fn get_friend_list(&self) -> Option<Vec<crate::api_resp::FriendListItem>> {
+        if let Some(bot) = &self.bot {
+            bot.get_friend_list().await
+        } else {
+            event!(
+                Level::ERROR,
+                "{}",
+                "Calling api with unbuilt matcher!".red()
+            );
+            None
+        }
+    }
+
+    pub async fn get_group_list(&self) -> Option<Vec<crate::api_resp::GroupListItem>> {
+        if let Some(bot) = &self.bot {
+            bot.get_group_list().await
+        } else {
+            event!(
+                Level::ERROR,
+                "{}",
+                "Calling api with unbuilt matcher!".red()
+            );
+            None
+        }
+    }
 }

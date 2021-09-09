@@ -1,6 +1,7 @@
 use crate::message::Message;
 use serde::{Deserialize, Serialize};
 
+/// WebSocket 接受数据枚举 Event || ApiResp
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum RecvItem {

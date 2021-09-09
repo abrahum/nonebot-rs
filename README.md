@@ -1,16 +1,14 @@
-<center>
-    <h1> Nonebot-rs </h1>
+# Nonebot-rs
 
-  <a href="https://github.com/botuniverse/onebot/blob/master/v11/specs/README.md">
-    <img src="https://img.shields.io/badge/OneBot-v11-black">
-  </a>
-  <a href="https://github.com/abrahum/nonebot-rs/blob/master/license">
-    <img src="https://img.shields.io/github/license/abrahum/nonebot-rs" alt="license">
-  </a>
-  <a href="https://crates.io/crates/nonebot_rs">
-    <img src="https://img.shields.io/crates/v/nonebot_rs">
-  </a>
-</center>
+<a href="https://github.com/botuniverse/onebot/blob/master/v11/specs/README.md">
+  <img src="https://img.shields.io/badge/OneBot-v11-black">
+</a>
+<a href="https://github.com/abrahum/nonebot-rs/blob/master/license">
+  <img src="https://img.shields.io/github/license/abrahum/nonebot-rs" alt="license">
+</a>
+<a href="https://crates.io/crates/nonebot_rs">
+  <img src="https://img.shields.io/crates/v/nonebot_rs">
+</a>
 
 基于 nonebot2 思路 Onebot SDK Rust 实现。
 
@@ -41,7 +39,7 @@ API文档地址：[Docs.rs](https://docs.rs/nonebot_rs/)
   - [x] logger(tracing-subscriber)
   - [x] echo (基础应答功能)
   - [x] Rcnb (对话功能实现，目前写法还很丑陋···想办法打包中)
-- [ ] built-in rules pre_matchers
+- [x] built-in rules pre_matchers
 - [ ] Nbconfig
   - [x] 基本设置
   - [x] bot 设置
@@ -53,12 +51,11 @@ API文档地址：[Docs.rs](https://docs.rs/nonebot_rs/)
   - [x] rules
   - [x] handler
   - [x] aftermatcher
-  - [ ] Matcher Api
+  - [x] Matcher Api
   - [x] 临时 Matcher 实现对话
 - [x] 文档
-- [ ] 定时任务插件
+- [x] 定时任务
 - [x] 声明宏
-- [ ] 模块化分离各组件
 - [ ] 使用 pyo3 搭建 nonebot-rs 版 Python 库(又绕回来了.jpg)
 
 </details>

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-/// Onebot Api 响应
+/// Onebot Api 响应根结构体
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ApiResp {
     pub status: String,
@@ -43,11 +43,13 @@ pub enum RespData {
     VersionInfo(VersionInfo),
 }
 
+/// message_id 响应数据
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MessageId {
     pub message_id: i32,
 }
 
+/// get_msg 响应数据
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Message {
     pub time: i32,
@@ -58,17 +60,20 @@ pub struct Message {
     pub message: Vec<crate::message::Message>,
 }
 
+/// get_forward_msg 响应数据
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Messages {
     pub message: Vec<crate::message::Message>,
 }
 
+/// get_login_info 响应数据
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LoginInfo {
     pub user_id: i64,
     pub nickname: String,
 }
 
+/// get_stranger_info 响应数据
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct StrangerInfo {
     pub user_id: i64,
@@ -77,6 +82,7 @@ pub struct StrangerInfo {
     pub age: i32,
 }
 
+/// get_group_info 响应数据
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GroupInfo {
     pub groupp_id: i64,
@@ -85,6 +91,7 @@ pub struct GroupInfo {
     pub max_member_count: i32,
 }
 
+/// get_group_member_info 响应数据
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GroupMemberInfo {
     pub groupp_id: i64,
@@ -104,6 +111,7 @@ pub struct GroupMemberInfo {
     pub card_changeable: bool,
 }
 
+/// get_group_honor_info 响应数据
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GroupHonorInfo {
     pub group_id: i64,
@@ -115,32 +123,38 @@ pub struct GroupHonorInfo {
     pub emotion_list: Option<Vec<HonorItem>>,
 }
 
+/// get_cookies 响应数据
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Cookies {
     pub cookies: String,
 }
 
+/// get_csrf_token 响应数据
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ScrfToken {
     pub token: i32,
 }
 
+/// get_credentials 响应数据
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Credentials {
     pub cookies: String,
     pub token: i32,
 }
 
+/// get_recode && get_image 响应数据
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct File {
     pub file: String,
 }
 
+/// can_send_image && can_send_record 响应数据
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SendCheck {
     pub yes: bool,
 }
 
+/// get_version_info 响应数据
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct VersionInfo {
     pub app_name: String,
@@ -148,7 +162,7 @@ pub struct VersionInfo {
     pub protocol_version: String,
 }
 
-/// Onebot Api get_friend_list 响应数组成员
+/// get_friend_list 响应数组成员
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FriendListItem {
     pub user_id: i64,
@@ -156,7 +170,7 @@ pub struct FriendListItem {
     pub remark: String,
 }
 
-/// Onebot Api get_group_list 响应数组成员
+/// get_group_list 响应数组成员
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GroupListItem {
     pub group_id: i64,
@@ -165,10 +179,10 @@ pub struct GroupListItem {
     pub max_member_count: i32,
 }
 
-/// Onebot Api get_group_list 响应数组成员
+/// get_group_member_list 响应数组成员
 #[derive(Debug, Serialize, Deserialize, Clone)] // need check
 pub struct GroupMember {
-    pub groupp_id: i64,
+    pub group_id: i64,
     pub user_id: i64,
     pub nickname: String,
     pub card: String,
@@ -182,6 +196,7 @@ pub struct GroupMember {
     pub card_changeable: bool,
 }
 
+/// get_group_honor_info 相关
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CurrentTalkative {
     pub user_id: i64,
@@ -190,6 +205,7 @@ pub struct CurrentTalkative {
     pub day_count: i32,
 }
 
+/// get_group_honor_info 相关
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct HonorItem {
     pub user_id: i64,

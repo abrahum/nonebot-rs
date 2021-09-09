@@ -1,5 +1,5 @@
 use crate::api_resp::{self, RespData};
-use crate::{api, config, message, utils, Api, ApiChannelItem, ApiResp};
+use crate::{api, config, message, utils, ApiChannelItem, ApiResp};
 use colored::*;
 use tokio::sync::{mpsc, watch};
 use tracing::{event, Level};
@@ -22,13 +22,13 @@ pub struct Bot {
 macro_rules! no_resp_api {
     ($fn_name: ident, $struct_name: tt, $param: ident: $param_type: ty) => {
         pub async fn $fn_name(&self, $param: $param_type) {
-            self.call_api(Api::$fn_name(api::$struct_name { $param: $param }))
+            self.call_api(api::Api::$fn_name(api::$struct_name { $param: $param }))
                 .await;
         }
     };
     ($fn_name: ident, $struct_name: tt, $($param: ident: $param_type: ty),*) => {
         pub async fn $fn_name(&self, $($param: $param_type,)*) {
-            self.call_api(Api::$fn_name(api::$struct_name {
+            self.call_api(api::Api::$fn_name(api::$struct_name {
                 $($param: $param,)*
             })).await;
         }
@@ -38,7 +38,7 @@ macro_rules! no_resp_api {
 macro_rules! resp_api {
     ($fn_name: ident,$resp_data: tt, $resp_data_type: ty) => {
         pub async fn $fn_name(&self) -> Option<$resp_data_type> {
-            let resp = self.call_api_resp(Api::$fn_name()).await;
+            let resp = self.call_api_resp(api::Api::$fn_name()).await;
             if let RespData::$resp_data(d) = resp.unwrap().data {
                 Some(d)
             } else {
@@ -49,7 +49,7 @@ macro_rules! resp_api {
     ($fn_name: ident, $struct_name: tt, $resp_data: tt, $resp_data_type: ty, $param: ident: $param_type: ty) => {
         pub async fn $fn_name(&self, $param: $param_type) -> Option<$resp_data_type> {
             let resp = self
-                .call_api_resp(Api::$fn_name(api::$struct_name { $param: $param }))
+                .call_api_resp(api::Api::$fn_name(api::$struct_name { $param: $param }))
                 .await;
             if let RespData::$resp_data(d) = resp.unwrap().data {
                 Some(d)
@@ -61,7 +61,7 @@ macro_rules! resp_api {
     ($fn_name: ident, $struct_name: tt, $resp_data: tt, $resp_data_type: ty, $($param: ident: $param_type: ty),*) => {
         pub async fn $fn_name(&self, $($param: $param_type,)*) -> Option<$resp_data_type> {
             let resp = self
-                .call_api_resp(Api::$fn_name(api::$struct_name {
+                .call_api_resp(api::Api::$fn_name(api::$struct_name {
                     $($param: $param,)*
                 }))
                 .await;
@@ -89,11 +89,12 @@ impl Bot {
             api_resp_watcher: api_resp_watcher,
         }
     }
+
     /// Send Group Msg
     pub async fn send_group_msg(&self, group_id: i64, msg: Vec<message::Message>) {
         self.api_sender
-            .send(ApiChannelItem::Api(crate::Api::send_group_msg(
-                crate::SendGroupMsg {
+            .send(ApiChannelItem::Api(crate::api::Api::send_group_msg(
+                crate::api::SendGroupMsg {
                     group_id: group_id,
                     message: msg.clone(),
                     auto_escape: false,
@@ -113,8 +114,8 @@ impl Bot {
     /// Send Private Msg
     pub async fn send_private_msg(&self, user_id: i64, msg: Vec<message::Message>) {
         self.api_sender
-            .send(ApiChannelItem::Api(crate::Api::send_private_msg(
-                crate::SendPrivateMsg {
+            .send(ApiChannelItem::Api(crate::api::Api::send_private_msg(
+                crate::api::SendPrivateMsg {
                     user_id: user_id,
                     message: msg.clone(),
                     auto_escape: false,
@@ -131,8 +132,8 @@ impl Bot {
         );
     }
 
-    /// same as Matcher
-    pub async fn call_api(&self, api: Api) {
+    /// 请求 Onebot Api，不等待 Onebot 返回
+    pub async fn call_api(&self, api: api::Api) {
         self.api_sender
             .send(ApiChannelItem::Api(api.clone()))
             .await
@@ -145,8 +146,8 @@ impl Bot {
         );
     }
 
-    /// same as Matcher
-    pub async fn call_api_resp(&self, api: Api) -> Option<api_resp::ApiResp> {
+    /// 请求 Onebot Api，等待 Onebot 返回项（30s 后 timeout 返回 None）
+    pub async fn call_api_resp(&self, api: api::Api) -> Option<api_resp::ApiResp> {
         let echo = api.get_echo();
         self.api_sender
             .send(ApiChannelItem::Api(api.clone()))

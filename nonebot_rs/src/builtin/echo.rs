@@ -1,9 +1,4 @@
-use crate::builtin;
-use crate::event::MessageEvent;
-use crate::matcher::{Handler, Matcher};
-use crate::message::Message;
-use crate::on_command;
-use async_trait::async_trait;
+use crate::matcher::prelude::*;
 
 #[doc(hidden)]
 #[derive(Clone)]
@@ -24,8 +19,8 @@ impl Handler<MessageEvent> for Echo {
 /// 单次复读 Matcher
 pub fn echo() -> Matcher<MessageEvent> {
     Matcher::new("Echo", Echo {})
-        .add_pre_matcher(builtin::prematchers::to_me())
-        .add_pre_matcher(builtin::prematchers::command_start())
+        .add_pre_matcher(prematchers::to_me())
+        .add_pre_matcher(prematchers::command_start())
 }
 
 #[doc(hidden)]
@@ -56,6 +51,6 @@ impl Handler<MessageEvent> for Echo2 {
 /// 无限复读 Matcher
 pub fn echo2() -> Matcher<MessageEvent> {
     Matcher::new("Echo2", Echo2 {})
-        .add_pre_matcher(builtin::prematchers::to_me())
-        .add_pre_matcher(builtin::prematchers::command_start())
+        .add_pre_matcher(prematchers::to_me())
+        .add_pre_matcher(prematchers::command_start())
 }

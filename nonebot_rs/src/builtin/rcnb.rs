@@ -1,8 +1,4 @@
-use crate::builtin;
-use crate::event::MessageEvent;
-use crate::matcher::{Handler, Matcher};
-use crate::on_command;
-use async_trait::async_trait;
+use crate::matcher::prelude::*;
 use rcnb_rs::encode;
 
 #[doc(hidden)]
@@ -26,6 +22,6 @@ impl Handler<MessageEvent> for Rcnb {
 /// rcnb！！！
 pub fn rcnb() -> Matcher<MessageEvent> {
     Matcher::new("Rcnb", Rcnb {})
-        .add_pre_matcher(builtin::prematchers::to_me())
-        .add_pre_matcher(builtin::prematchers::command_start())
+        .add_pre_matcher(prematchers::to_me())
+        .add_pre_matcher(prematchers::command_start())
 }

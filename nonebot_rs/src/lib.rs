@@ -140,7 +140,6 @@
 //!
 //! fn main() {
 //!     let mut nb = nonebot_rs::Nonebot::new();
-//!         .add_message_matchers(r6s());
 //!     nb.scheduler.add(clock(&nb)).unwrap();
 //!     nb.run()
 //! }

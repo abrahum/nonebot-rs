@@ -136,10 +136,9 @@ async fn send_a_msg(bot: nonebot_rs::Bot) {
 use nonebot_rs;
 
 fn main() {
-  let mut nb = nonebot_rs::Nonebot::new();
-      .add_message_matchers(r6s());
-  nb.scheduler.add(clock(&nb)).unwrap();
-  nb.run()
+    let mut nb = nonebot_rs::Nonebot::new();
+    nb.scheduler.add(clock(&nb)).unwrap();
+    nb.run()
 }
 ```
 

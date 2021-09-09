@@ -21,9 +21,16 @@ async fn build_status(event: &MessageEvent, matcher: &Matcher<MessageEvent>) -> 
         Some(glist) => glist.len(),
         None => 0,
     };
+    let time: String = if let Some(bot) = &matcher.bot {
+        let connected_time = crate::utils::timestamp() - bot.connect_time;
+        format_time(connected_time)
+    } else {
+        "-".to_string()
+    };
     format!(
-        "当前BotId：{}\n已加载好友数量：{}\n已加载群数量：{}",
+        "当前BotId：{}\n已连接时间：{}\n已加载好友数量：{}\n已加载群数量：{}",
         event.get_self_id(),
+        time,
         friend_count,
         group_count
     )
@@ -31,4 +38,28 @@ async fn build_status(event: &MessageEvent, matcher: &Matcher<MessageEvent>) -> 
 
 pub fn bot_status() -> Matcher<MessageEvent> {
     Matcher::new("Bot Status", Status {}).add_rule(rules::is_superuser())
+}
+
+fn format_time(time: i64) -> String {
+    fn f(time: i64, div: i64, mut rs: String, s: &str) -> (String, i64) {
+        let (time, remain) = (time / div, time % div);
+        rs.insert_str(0, &format!("{}{}", remain, s));
+        (rs, time)
+    }
+
+    let rs = String::new();
+    let (rs, time) = f(time, 60, rs, "秒");
+    if time == 0 {
+        return rs;
+    }
+    let (rs, time) = f(time, 60, rs, "分");
+    if time == 0 {
+        return rs;
+    }
+    let (mut rs, time) = f(time, 24, rs, "时");
+    if time == 0 {
+        return rs;
+    }
+    rs.insert_str(0, &format!("{}{}", time, "天"));
+    rs
 }

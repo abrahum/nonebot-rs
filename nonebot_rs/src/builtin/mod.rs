@@ -1,19 +1,24 @@
 /// 内建 echo Matcher
 #[cfg(feature = "matcher")]
+#[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
 pub mod echo;
 #[doc(hidden)]
 pub mod macros;
 /// 内建 PreMatcher 函数
 #[cfg(feature = "matcher")]
+#[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
 pub mod prematchers;
 /// rcnb！！！
 #[cfg(feature = "matcher")]
+#[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
 pub mod rcnb;
 /// 内建 rules
 #[cfg(feature = "matcher")]
+#[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
 pub mod rules;
 /// Bot Status
 #[cfg(feature = "matcher")]
+#[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
 pub mod bot_status;
 
 use crate::event::{MessageEvent, MetaEvent};

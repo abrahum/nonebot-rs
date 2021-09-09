@@ -7,6 +7,10 @@ authors = ["Abrahum Link<307887491@qq.com>"]
 version = "0.2.1"
 edition = "2018"
 
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]

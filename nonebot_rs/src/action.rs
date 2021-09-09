@@ -16,19 +16,23 @@ pub enum Action {
     RemoveBot { bot_id: i64 },
     /// 移除 Matcher
     #[cfg(feature = "matcher")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
     RemoveMatcher { name: String },
     /// 添加 Matcher<MessageEvent>
     ///
     /// 当存在同名 Matcher 时，将会替代旧 Matcher
     #[cfg(feature = "matcher")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
     AddMessageEventMatcher {
         message_event_matcher: crate::matcher::Matcher<crate::event::MessageEvent>,
     },
     /// 禁用 Matcher
     #[cfg(feature = "matcher")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
     DisableMatcher { name: String },
     /// 取消禁用 Matcher
     #[cfg(feature = "matcher")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
     EnableMatcher { name: String },
     /// 变更 BotConfig
     ChangeBotConfig {

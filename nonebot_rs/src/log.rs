@@ -18,6 +18,7 @@ pub fn init(debug: bool, trace: Option<bool>) {
 }
 
 #[cfg(feature = "matcher")]
+#[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
 pub fn log_load_matchers(matchers: &crate::Matchers) {
     log_matcherb(&matchers.message);
     log_matcherb(&matchers.notice);
@@ -26,6 +27,7 @@ pub fn log_load_matchers(matchers: &crate::Matchers) {
 }
 
 #[cfg(feature = "matcher")]
+#[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
 fn log_matcherb<E>(matcherb: &crate::MatchersBTreeMap<E>)
 where
     E: Clone,

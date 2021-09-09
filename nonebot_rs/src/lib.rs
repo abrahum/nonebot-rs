@@ -167,20 +167,24 @@ pub mod event;
 pub mod log;
 /// Matcher 定义
 #[cfg(feature = "matcher")]
+#[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
 pub mod matcher;
 #[doc(hidden)]
 pub mod message;
 mod plugin;
 #[doc(hidden)]
 #[cfg(feature = "pyo")]
+#[cfg_attr(docsrs, doc(cfg(feature = "pyo")))]
 pub mod pyo;
 mod utils;
 
 use std::collections::HashMap;
 use tokio::sync::{mpsc, watch};
 #[cfg(feature = "scheduler")]
+#[cfg_attr(docsrs, doc(cfg(feature = "scheduler")))]
 pub use tokio_cron_scheduler::Job;
 #[cfg(feature = "scheduler")]
+#[cfg_attr(docsrs, doc(cfg(feature = "scheduler")))]
 use tokio_cron_scheduler::JobScheduler;
 
 #[doc(inline)]
@@ -192,6 +196,7 @@ pub use async_trait::async_trait;
 pub use bot::Bot;
 #[doc(inline)]
 #[cfg(feature = "matcher")]
+#[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
 pub use matcher::matchers::{Matchers, MatchersBTreeMap, MatchersHashMap};
 #[doc(inline)]
 pub use message::Message;

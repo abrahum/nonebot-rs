@@ -172,7 +172,6 @@ impl Matchers {
     }
 
     #[doc(hidden)]
-    #[cfg(feature = "matcher")]
     async fn handler_event_<E>(
         matcherh: &mut crate::MatchersHashMap<E>,
         e: E,

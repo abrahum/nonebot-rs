@@ -51,5 +51,5 @@ version = "0.3.14"
 features = ["sink"]
 
 [dependencies.tokio-cron-scheduler]
-version = "*"
+version = "0.2"
 optional = true

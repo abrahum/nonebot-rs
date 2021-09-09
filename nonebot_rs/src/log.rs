@@ -11,7 +11,7 @@ pub fn init(debug: bool, trace: Option<bool>) {
     }
     if let Some(b) = trace {
         if b {
-            std::env::set_var("RUST_LOG", "nonebot_rs=trace");
+            std::env::set_var("RUST_LOG", "trace");
         }
     }
     tracing_subscriber::fmt::init();

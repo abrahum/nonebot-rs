@@ -67,7 +67,7 @@ impl Matcher<MessageEvent> {
         let event = self.event.clone().unwrap();
         let mut m = build_temp_message_event_matcher(&event, Temp {});
         let bot = crate::bot::Bot::new(
-            0,
+            "Temp".to_string(),
             crate::config::BotConfig::default(),
             sender,
             self.bot.clone().unwrap().api_resp_watcher.clone(),
@@ -110,7 +110,7 @@ impl Matcher<MessageEvent> {
         match self.event.clone().unwrap() {
             MessageEvent::Private(p) => {
                 if let Some(bot) = &self.bot {
-                    bot.send_private_msg(p.user_id, msg).await;
+                    bot.send_private_msg(&p.user_id, msg).await;
                 } else {
                     tevent!(
                         Level::ERROR,
@@ -121,7 +121,7 @@ impl Matcher<MessageEvent> {
             }
             MessageEvent::Group(g) => {
                 if let Some(bot) = &self.bot {
-                    bot.send_group_msg(g.group_id, msg).await;
+                    bot.send_group_msg(&g.group_id, msg).await;
                 } else {
                     tevent!(
                         Level::ERROR,

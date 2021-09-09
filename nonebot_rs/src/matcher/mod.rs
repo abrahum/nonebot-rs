@@ -230,7 +230,7 @@ where
     .add_rule(crate::builtin::rules::is_user(event.get_user_id()))
     .add_rule(crate::builtin::rules::is_bot(event.get_self_id()));
     if let MessageEvent::Group(g) = event {
-        m.add_rule(crate::builtin::rules::in_group(g.group_id));
+        m.add_rule(crate::builtin::rules::in_group(g.group_id.clone()));
     } else {
         m.add_rule(crate::builtin::rules::is_private_message_event());
     }

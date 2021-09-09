@@ -15,10 +15,7 @@ pub fn clock(nb: &nonebot_rs::Nonebot) -> Job {
 // Just for test
 async fn send_a_msg(bot: nonebot_rs::Bot) {
     for superuser in &bot.config.superusers {
-        bot.send_private_msg(
-            superuser.parse().unwrap(),
-            vec![Message::text("One minute passed.")],
-        )
-        .await;
+        bot.send_private_msg(superuser, vec![Message::text("One minute passed.")])
+            .await;
     }
 }

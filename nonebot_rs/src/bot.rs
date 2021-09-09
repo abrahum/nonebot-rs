@@ -8,7 +8,7 @@ use tracing::{event, Level};
 #[derive(Debug, Clone)]
 pub struct Bot {
     /// bot id
-    pub bot_id: i64,
+    pub bot_id: String,
     /// connect timestamp
     pub connect_time: i64,
     // Bot Config
@@ -76,7 +76,7 @@ macro_rules! resp_api {
 
 impl Bot {
     pub fn new(
-        bot_id: i64,
+        bot_id: String,
         config: config::BotConfig,
         api_sender: mpsc::Sender<ApiChannelItem>,
         api_resp_watcher: watch::Receiver<ApiResp>,
@@ -91,11 +91,11 @@ impl Bot {
     }
 
     /// Send Group Msg
-    pub async fn send_group_msg(&self, group_id: i64, msg: Vec<message::Message>) {
+    pub async fn send_group_msg(&self, group_id: &str, msg: Vec<message::Message>) {
         self.api_sender
             .send(ApiChannelItem::Api(crate::api::Api::send_group_msg(
                 crate::api::SendGroupMsg {
-                    group_id: group_id,
+                    group_id: group_id.to_string(),
                     message: msg.clone(),
                     auto_escape: false,
                 },
@@ -112,11 +112,11 @@ impl Bot {
     }
 
     /// Send Private Msg
-    pub async fn send_private_msg(&self, user_id: i64, msg: Vec<message::Message>) {
+    pub async fn send_private_msg(&self, user_id: &str, msg: Vec<message::Message>) {
         self.api_sender
             .send(ApiChannelItem::Api(crate::api::Api::send_private_msg(
                 crate::api::SendPrivateMsg {
-                    user_id: user_id,
+                    user_id: user_id.to_string(),
                     message: msg.clone(),
                     auto_escape: false,
                 },
@@ -180,25 +180,25 @@ impl Bot {
     //     .await;
     // }
     no_resp_api!(delete_msg, DeleteMsg, message_id: i32);
-    no_resp_api!(send_like, SendLike, user_id: i64, times: u8);
+    no_resp_api!(send_like, SendLike, user_id: String, times: u8);
     no_resp_api!(
         set_group_kick,
         SetGroupKick,
-        group_id: i64,
-        user_id: i64,
+        group_id: String,
+        user_id: String,
         reject_add_request: bool
     );
     no_resp_api!(
         set_group_ban,
         SetGroupBan,
-        group_id: i64,
-        user_id: i64,
+        group_id: String,
+        user_id: String,
         duration: i64
     );
     no_resp_api!(
         set_group_anonymous_ban,
         SetGroupAnonymousBan,
-        group_id: i64,
+        group_id: String,
         anonymous: crate::event::Anoymous,
         flag: String,
         duration: i64
@@ -206,46 +206,46 @@ impl Bot {
     no_resp_api!(
         set_group_whole_ban,
         SetGroupWholeBan,
-        group_id: i64,
+        group_id: String,
         enable: bool
     );
     no_resp_api!(
         set_group_admin,
         SetGroupAdmin,
-        group_id: i64,
-        user_id: i64,
+        group_id: String,
+        user_id: String,
         enable: bool
     );
     no_resp_api!(
         set_group_anonymous,
         SetGroupAnonymous,
-        group_id: i64,
+        group_id: String,
         enable: bool
     );
     no_resp_api!(
         set_group_card,
         SetGroupCard,
-        group_id: i64,
-        user_id: i64,
+        group_id: String,
+        user_id: String,
         card: String
     );
     no_resp_api!(
         set_group_name,
         SetGroupName,
-        group_id: i64,
+        group_id: String,
         group_name: String
     );
     no_resp_api!(
         set_group_leave,
         SetGroupLeave,
-        group_id: i64,
+        group_id: String,
         is_dismiss: bool
     );
     no_resp_api!(
         set_group_special_title,
         SetGroupSpecialTitle,
-        group_id: i64,
-        user_id: i64,
+        group_id: String,
+        user_id: String,
         special_title: String,
         duration: i64
     );
@@ -285,8 +285,8 @@ impl Bot {
         MessageId,
         api_resp::MessageId,
         message_type: Option<String>,
-        user_id: Option<i64>,
-        group_id: Option<i64>,
+        user_id: Option<String>,
+        group_id: Option<String>,
         message: Vec<crate::Message>,
         auto_escape: bool
     );
@@ -304,7 +304,7 @@ impl Bot {
         GetStrangerInfo,
         StrangerInfo,
         api_resp::StrangerInfo,
-        user_id: i64,
+        user_id: String,
         no_cache: bool
     );
     resp_api!(get_friend_list, FriendList, Vec<api_resp::FriendListItem>);
@@ -313,7 +313,7 @@ impl Bot {
         GetGroupInfo,
         GroupInfo,
         api_resp::GroupInfo,
-        group_id: i64,
+        group_id: String,
         no_cache: bool
     );
     resp_api!(get_group_list, GroupList, Vec<api_resp::GroupListItem>);
@@ -322,8 +322,8 @@ impl Bot {
         GetGroupMemberInfo,
         GroupMemberInfo,
         api_resp::GroupMemberInfo,
-        group_id: i64,
-        user_id: i64,
+        group_id: String,
+        user_id: String,
         no_cache: bool
     );
     resp_api!(
@@ -331,14 +331,14 @@ impl Bot {
         GetGroupMemberList,
         GroupMemberList,
         Vec<api_resp::GroupMember>,
-        group_id: i64
+        group_id: String
     );
     resp_api!(
         get_group_honor_info,
         GetGroupHonorInfo,
         GroupHonorInfo,
         api_resp::GroupHonorInfo,
-        group_id: i64,
+        group_id: String,
         type_: String
     );
     resp_api!(

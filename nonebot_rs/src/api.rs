@@ -255,14 +255,14 @@ impl Api {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SendPrivateMsg {
-    pub user_id: i64,
+    pub user_id: String,
     pub message: Vec<crate::message::Message>,
     pub auto_escape: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SendGroupMsg {
-    pub group_id: i64,
+    pub group_id: String,
     pub message: Vec<crate::message::Message>,
     pub auto_escape: bool,
 }
@@ -270,8 +270,8 @@ pub struct SendGroupMsg {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SendMsg {
     pub message_type: Option<String>,
-    pub user_id: Option<i64>,
-    pub group_id: Option<i64>,
+    pub user_id: Option<String>,
+    pub group_id: Option<String>,
     pub message: Vec<crate::message::Message>,
     pub auto_escape: bool,
 }
@@ -293,27 +293,27 @@ pub struct GetForwardMsg {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SendLike {
-    pub user_id: i64,
+    pub user_id: String,
     pub times: u8,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SetGroupKick {
-    pub group_id: i64,
-    pub user_id: i64,
+    pub group_id: String,
+    pub user_id: String,
     pub reject_add_request: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SetGroupBan {
-    pub group_id: i64,
-    pub user_id: i64,
+    pub group_id: String,
+    pub user_id: String,
     pub duration: i64, // 禁言时长，单位秒，0表示取消禁言
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SetGroupAnonymousBan {
-    pub group_id: i64,
+    pub group_id: String,
     pub anonymous: crate::event::Anoymous,
     pub flag: String,
     pub duration: i64,
@@ -321,46 +321,46 @@ pub struct SetGroupAnonymousBan {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SetGroupWholeBan {
-    pub group_id: i64,
+    pub group_id: String,
     pub enable: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SetGroupAdmin {
-    pub group_id: i64,
-    pub user_id: i64,
+    pub group_id: String,
+    pub user_id: String,
     pub enable: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SetGroupAnonymous {
-    pub group_id: i64,
+    pub group_id: String,
     pub enable: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SetGroupCard {
-    pub group_id: i64,
-    pub user_id: i64,
+    pub group_id: String,
+    pub user_id: String,
     pub card: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SetGroupName {
-    pub group_id: i64,
+    pub group_id: String,
     pub group_name: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SetGroupLeave {
-    pub group_id: i64,
+    pub group_id: String,
     pub is_dismiss: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SetGroupSpecialTitle {
-    pub group_id: i64,
-    pub user_id: i64,
+    pub group_id: String,
+    pub user_id: String,
     pub special_title: String,
     pub duration: i64,
 }
@@ -382,31 +382,31 @@ pub struct SetGroupAddRequest {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetStrangerInfo {
-    pub user_id: i64,
+    pub user_id: String,
     pub no_cache: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetGroupInfo {
-    pub group_id: i64,
+    pub group_id: String,
     pub no_cache: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetGroupMemberInfo {
-    pub group_id: i64,
-    pub user_id: i64,
+    pub group_id: String,
+    pub user_id: String,
     pub no_cache: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetGroupMemberList {
-    pub group_id: i64,
+    pub group_id: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetGroupHonorInfo {
-    pub group_id: i64,
+    pub group_id: String,
     #[serde(rename = "type")]
     pub type_: String,
 }

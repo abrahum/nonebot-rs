@@ -52,7 +52,7 @@ where
 }
 
 /// 判定 event 是否来自指定 group
-pub fn in_group(group_id: i64) -> Rule<MessageEvent> {
+pub fn in_group(group_id: String) -> Rule<MessageEvent> {
     let in_group = move |event: &MessageEvent, _: &BotConfig| -> bool {
         if let MessageEvent::Group(g) = event {
             if g.group_id == group_id {

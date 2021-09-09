@@ -7,13 +7,13 @@ use tracing::{event, Level};
 pub enum Action {
     /// 添加 Bot
     AddBot {
-        bot_id: i64,
+        bot_id: String,
         api_sender: mpsc::Sender<ApiChannelItem>,
         auth: Option<String>,
         api_resp_watcher: watch::Receiver<crate::api_resp::ApiResp>,
     },
     /// 移除 Bot
-    RemoveBot { bot_id: i64 },
+    RemoveBot { bot_id: String },
     /// 移除 Matcher
     #[cfg(feature = "matcher")]
     #[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
@@ -53,7 +53,8 @@ impl crate::Nonebot {
                 api_resp_watcher,
             } => {
                 if crate::Nonebot::check_auth(auth) {
-                    let bot = self.add_bot(bot_id, api_sender.clone(), api_resp_watcher.clone());
+                    let bot =
+                        self.add_bot(bot_id.clone(), api_sender.clone(), api_resp_watcher.clone());
                     event!(Level::DEBUG, "Add Bot [{}]", bot_id);
                     #[cfg(feature = "matcher")]
                     self.matchers.run_on_connect(bot);
@@ -62,7 +63,7 @@ impl crate::Nonebot {
                 }
             }
             Action::RemoveBot { bot_id } => {
-                self.remove_bot(bot_id);
+                self.remove_bot(bot_id.clone());
                 event!(Level::DEBUG, "Remove Bot [{}]", bot_id);
             }
             #[cfg(feature = "matcher")]

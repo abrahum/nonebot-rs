@@ -102,13 +102,13 @@ pub struct PrivateMessageEvent {
     /// Event 时间戳
     pub time: i64,
     /// 收到事件的机器人 QQ 号
-    pub self_id: i64,
+    pub self_id: String,
     /// 消息子类型
     pub sub_type: String,
     /// 消息 ID
     pub message_id: i32,
     /// 发送者 ID
-    pub user_id: i64,
+    pub user_id: String,
     /// Array 消息内容
     pub message: Vec<Message>,
     /// 原生消息内容
@@ -138,15 +138,15 @@ pub struct GroupMessageEvent {
     /// Event 时间戳
     pub time: i64,
     /// 收到事件的机器人 QQ 号
-    pub self_id: i64,
+    pub self_id: String,
     /// 消息子类型
     pub sub_type: String,
     /// 消息 ID
     pub message_id: i32,
     /// 群消息群号
-    pub group_id: i64,
+    pub group_id: String,
     /// 发送者 ID
-    pub user_id: i64,
+    pub user_id: String,
     /// 匿名消息 非匿名消息为空
     pub anonymous: Option<Anoymous>,
     /// Array 消息内容
@@ -163,7 +163,7 @@ pub struct GroupMessageEvent {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GroupSender {
     /// 发送者 QQ 号
-    pub user_id: i64,
+    pub user_id: String,
     /// 昵称
     pub nickname: String,
     /// 群名片|备注
@@ -199,7 +199,7 @@ pub struct NoticeEvent {
     /// Event 时间戳
     pub time: i64,
     /// 收到事件的机器人 QQ 号
-    pub self_id: i64,
+    pub self_id: String,
     /// 上报类型
     pub notice_type: String,
     /// 事件子类型
@@ -209,7 +209,7 @@ pub struct NoticeEvent {
     /// 操作者 QQ 号
     pub operator_id: Option<i64>,
     /// 发送者 ID
-    pub user_id: i64,
+    pub user_id: String,
     /// 文件信息
     pub file: Option<File>,
     /// 禁言时长，单位秒
@@ -241,11 +241,11 @@ pub struct RequestEvent {
     /// Event 时间戳
     pub time: i64,
     /// 收到事件的机器人 QQ 号
-    pub self_id: i64,
+    pub self_id: String,
     /// 请求类型
     pub request_type: String,
     /// 发送请求的 QQ 号
-    pub user_id: i64,
+    pub user_id: String,
     /// 验证信息
     pub comment: String,
     /// 请求 flag
@@ -262,7 +262,7 @@ pub struct MetaEvent {
     /// Event 时间戳
     pub time: i64,
     /// 收到事件的机器人 QQ 号
-    pub self_id: i64,
+    pub self_id: String,
     /// 元事件类型 lifecycle|heartbeat
     pub meta_event_type: String,
     /// 事件子类型
@@ -298,13 +298,13 @@ impl UserId for MessageEvent {
 
 impl UserId for NoticeEvent {
     fn get_user_id(&self) -> String {
-        self.user_id.to_string()
+        self.user_id.clone()
     }
 }
 
 impl UserId for RequestEvent {
     fn get_user_id(&self) -> String {
-        self.user_id.to_string()
+        self.user_id.clone()
     }
 }
 
@@ -316,27 +316,27 @@ pub trait SelfId {
 impl SelfId for MessageEvent {
     fn get_self_id(&self) -> String {
         match self {
-            MessageEvent::Private(p) => p.self_id.to_string(),
-            MessageEvent::Group(g) => g.self_id.to_string(),
+            MessageEvent::Private(p) => p.self_id.clone(),
+            MessageEvent::Group(g) => g.self_id.clone(),
         }
     }
 }
 
 impl SelfId for RequestEvent {
     fn get_self_id(&self) -> String {
-        self.self_id.to_string()
+        self.self_id.clone()
     }
 }
 
 impl SelfId for NoticeEvent {
     fn get_self_id(&self) -> String {
-        self.self_id.to_string()
+        self.self_id.clone()
     }
 }
 
 impl SelfId for MetaEvent {
     fn get_self_id(&self) -> String {
-        self.self_id.to_string()
+        self.self_id.clone()
     }
 }
 

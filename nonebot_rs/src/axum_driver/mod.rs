@@ -44,7 +44,7 @@ pub async fn run(
                 };
                 event_sender
                     .send(crate::EventChannelItem::Action(crate::Action::AddBot {
-                        bot_id: x_self_id.0,
+                        bot_id: x_self_id.0.clone(),
                         api_sender: sender,
                         auth: auth,
                         api_resp_watcher: api_resp_watcher,
@@ -55,7 +55,7 @@ pub async fn run(
                     Level::INFO,
                     "{} Client {} is connectted. The client type is {}",
                     user_agent.to_string().bright_yellow(),
-                    x_self_id.0.to_string().red(),
+                    x_self_id.0.red(),
                     x_client_role.0.bright_cyan()
                 );
                 handle_socket(
@@ -83,7 +83,7 @@ async fn stream_recv(
     stream: futures_util::stream::SplitStream<axum::ws::WebSocket>,
     event_sender: &mpsc::Sender<crate::EventChannelItem>,
     apiresp_watch_sender: &watch::Sender<crate::api_resp::ApiResp>,
-    bot_id: i64,
+    bot_id: String,
 ) -> Option<futures_util::stream::SplitStream<axum::ws::WebSocket>> {
     let (msg, next_stream) = stream.into_future().await;
     if let Some(msg) = msg {
@@ -134,7 +134,7 @@ async fn handle_socket(
     mut api_receiver: mpsc::Receiver<crate::ApiChannelItem>,
     event_sender: mpsc::Sender<crate::EventChannelItem>,
     apiresp_watch_sender: watch::Sender<crate::api_resp::ApiResp>,
-    bot_id: i64,
+    bot_id: String,
 ) {
     // 将 websocket 接收流与发送流分离
     let (mut sink, mut stream) = socket.split();
@@ -142,7 +142,13 @@ async fn handle_socket(
     let another_event_sender = event_sender.clone();
     let income = async move {
         loop {
-            let r = stream_recv(stream, &another_event_sender, &apiresp_watch_sender, bot_id).await;
+            let r = stream_recv(
+                stream,
+                &another_event_sender,
+                &apiresp_watch_sender,
+                bot_id.clone(),
+            )
+            .await;
             if let Some(s) = r {
                 stream = s;
             } else {

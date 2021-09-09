@@ -1,5 +1,6 @@
 #![doc(html_favicon_url = "https://v2.nonebot.dev/logo.png")]
 #![doc(html_logo_url = "https://v2.nonebot.dev/logo.png")]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 //! Nonebot-rs 简称 nbrs，是一个基于 Nonebot2 思路的 Onebot 协议机器人框架 Rust 实现。
 //! 本框架的基本目标是实现比较便利的 Rust Onebot 机器人搭建。长期目标是以本项目为基础，

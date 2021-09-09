@@ -1,3 +1,4 @@
+use crate::utils::id_deserializer;
 use serde::{Deserialize, Serialize};
 
 /// Onebot Api 响应根结构体
@@ -69,14 +70,16 @@ pub struct Messages {
 /// get_login_info 响应数据
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LoginInfo {
-    pub user_id: i64,
+    #[serde(deserialize_with = "id_deserializer")]
+    pub user_id: String,
     pub nickname: String,
 }
 
 /// get_stranger_info 响应数据
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct StrangerInfo {
-    pub user_id: i64,
+    #[serde(deserialize_with = "id_deserializer")]
+    pub user_id: String,
     pub nickname: String,
     pub sex: String,
     pub age: i32,
@@ -85,7 +88,8 @@ pub struct StrangerInfo {
 /// get_group_info 响应数据
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GroupInfo {
-    pub groupp_id: i64,
+    #[serde(deserialize_with = "id_deserializer")]
+    pub groupp_id: String,
     pub group_name: String,
     pub member_count: i32,
     pub max_member_count: i32,
@@ -94,8 +98,10 @@ pub struct GroupInfo {
 /// get_group_member_info 响应数据
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GroupMemberInfo {
-    pub groupp_id: i64,
-    pub user_id: i64,
+    #[serde(deserialize_with = "id_deserializer")]
+    pub groupp_id: String,
+    #[serde(deserialize_with = "id_deserializer")]
+    pub user_id: String,
     pub nickname: String,
     pub card: String,
     pub sex: String,
@@ -114,7 +120,8 @@ pub struct GroupMemberInfo {
 /// get_group_honor_info 响应数据
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GroupHonorInfo {
-    pub group_id: i64,
+    #[serde(deserialize_with = "id_deserializer")]
+    pub group_id: String,
     pub current_talkative: Option<CurrentTalkative>,
     pub talkative_list: Option<Vec<HonorItem>>,
     pub performer_list: Option<Vec<HonorItem>>,
@@ -165,7 +172,8 @@ pub struct VersionInfo {
 /// get_friend_list 响应数组成员
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FriendListItem {
-    pub user_id: i64,
+    #[serde(deserialize_with = "id_deserializer")]
+    pub user_id: String,
     pub nickname: String,
     pub remark: String,
 }
@@ -173,7 +181,8 @@ pub struct FriendListItem {
 /// get_group_list 响应数组成员
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GroupListItem {
-    pub group_id: i64,
+    #[serde(deserialize_with = "id_deserializer")]
+    pub group_id: String,
     pub group_name: String,
     pub member_count: i32,
     pub max_member_count: i32,
@@ -182,8 +191,10 @@ pub struct GroupListItem {
 /// get_group_member_list 响应数组成员
 #[derive(Debug, Serialize, Deserialize, Clone)] // need check
 pub struct GroupMember {
-    pub group_id: i64,
-    pub user_id: i64,
+    #[serde(deserialize_with = "id_deserializer")]
+    pub group_id: String,
+    #[serde(deserialize_with = "id_deserializer")]
+    pub user_id: String,
     pub nickname: String,
     pub card: String,
     pub sex: String,
@@ -199,7 +210,8 @@ pub struct GroupMember {
 /// get_group_honor_info 相关
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CurrentTalkative {
-    pub user_id: i64,
+    #[serde(deserialize_with = "id_deserializer")]
+    pub user_id: String,
     pub nickname: String,
     pub avatar: String,
     pub day_count: i32,
@@ -208,7 +220,8 @@ pub struct CurrentTalkative {
 /// get_group_honor_info 相关
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct HonorItem {
-    pub user_id: i64,
+    #[serde(deserialize_with = "id_deserializer")]
+    pub user_id: String,
     pub nickname: String,
     pub avatar: String,
     pub description: String,

@@ -1,4 +1,5 @@
 use crate::message::Message;
+use crate::utils::{id_deserializer, option_id_deserializer};
 use serde::{Deserialize, Serialize};
 
 /// WebSocket 接受数据枚举 Event || ApiResp
@@ -102,12 +103,14 @@ pub struct PrivateMessageEvent {
     /// Event 时间戳
     pub time: i64,
     /// 收到事件的机器人 QQ 号
+    #[serde(deserialize_with = "id_deserializer")]
     pub self_id: String,
     /// 消息子类型
     pub sub_type: String,
     /// 消息 ID
     pub message_id: i32,
     /// 发送者 ID
+    #[serde(deserialize_with = "id_deserializer")]
     pub user_id: String,
     /// Array 消息内容
     pub message: Vec<Message>,
@@ -123,7 +126,8 @@ pub struct PrivateMessageEvent {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PrivateSender {
     /// 发送者 QQ 号
-    pub user_id: i64,
+    #[serde(deserialize_with = "id_deserializer")]
+    pub user_id: String,
     /// 昵称
     pub nickname: String,
     /// 性别 male|female|unkown
@@ -138,14 +142,17 @@ pub struct GroupMessageEvent {
     /// Event 时间戳
     pub time: i64,
     /// 收到事件的机器人 QQ 号
+    #[serde(deserialize_with = "id_deserializer")]
     pub self_id: String,
     /// 消息子类型
     pub sub_type: String,
     /// 消息 ID
     pub message_id: i32,
     /// 群消息群号
+    #[serde(deserialize_with = "id_deserializer")]
     pub group_id: String,
     /// 发送者 ID
+    #[serde(deserialize_with = "id_deserializer")]
     pub user_id: String,
     /// 匿名消息 非匿名消息为空
     pub anonymous: Option<Anoymous>,
@@ -163,6 +170,7 @@ pub struct GroupMessageEvent {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GroupSender {
     /// 发送者 QQ 号
+    #[serde(deserialize_with = "id_deserializer")]
     pub user_id: String,
     /// 昵称
     pub nickname: String,
@@ -186,7 +194,8 @@ pub struct GroupSender {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Anoymous {
     /// 匿名用户 ID
-    pub id: i64,
+    #[serde(deserialize_with = "id_deserializer")]
+    pub id: String,
     /// 匿名用户名称
     pub name: String,
     /// 匿名用户 flag
@@ -199,16 +208,20 @@ pub struct NoticeEvent {
     /// Event 时间戳
     pub time: i64,
     /// 收到事件的机器人 QQ 号
+    #[serde(deserialize_with = "id_deserializer")]
     pub self_id: String,
     /// 上报类型
     pub notice_type: String,
     /// 事件子类型
     pub sub_type: Option<String>,
     /// 群消息群号
-    pub group_id: Option<i64>,
+    #[serde(deserialize_with = "option_id_deserializer")]
+    pub group_id: Option<String>,
     /// 操作者 QQ 号
-    pub operator_id: Option<i64>,
+    #[serde(deserialize_with = "option_id_deserializer")]
+    pub operator_id: Option<String>,
     /// 发送者 ID
+    #[serde(deserialize_with = "id_deserializer")]
     pub user_id: String,
     /// 文件信息
     pub file: Option<File>,
@@ -217,7 +230,8 @@ pub struct NoticeEvent {
     /// 被撤回的消息 ID
     pub message_id: Option<i64>,
     /// 目标 QQ 号
-    pub target_id: Option<i64>,
+    #[serde(deserialize_with = "option_id_deserializer")]
+    pub target_id: Option<String>,
     /// 群荣耀类型
     pub honor_type: Option<String>,
 }
@@ -241,10 +255,12 @@ pub struct RequestEvent {
     /// Event 时间戳
     pub time: i64,
     /// 收到事件的机器人 QQ 号
+    #[serde(deserialize_with = "id_deserializer")]
     pub self_id: String,
     /// 请求类型
     pub request_type: String,
     /// 发送请求的 QQ 号
+    #[serde(deserialize_with = "id_deserializer")]
     pub user_id: String,
     /// 验证信息
     pub comment: String,
@@ -253,7 +269,8 @@ pub struct RequestEvent {
     /// 请求子类型
     pub sub_type: Option<String>,
     /// 群号
-    pub group_id: Option<i64>,
+    #[serde(deserialize_with = "option_id_deserializer")]
+    pub group_id: Option<String>,
 }
 
 /// 元事件
@@ -262,6 +279,7 @@ pub struct MetaEvent {
     /// Event 时间戳
     pub time: i64,
     /// 收到事件的机器人 QQ 号
+    #[serde(deserialize_with = "id_deserializer")]
     pub self_id: String,
     /// 元事件类型 lifecycle|heartbeat
     pub meta_event_type: String,
@@ -271,6 +289,12 @@ pub struct MetaEvent {
     pub status: Option<Status>,
     /// 下次心跳间隔，单位毫秒
     pub interval: Option<i64>,
+}
+
+#[test]
+fn de_test() {
+    let test_str = "{\"group_id\":101,\"message_id\":111,\"notice_type\":\"group_recall\",\"operator_id\":11,\"post_type\":\"notice\",\"self_id\":11,\"time\":1631193409,\"user_id\":11}\n";
+    let _meta: Event = serde_json::from_str(test_str).unwrap();
 }
 
 /// 元事件状态字段

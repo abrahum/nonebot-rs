@@ -90,8 +90,8 @@ async fn stream_recv(
         use crate::event::RecvItem;
         if let Ok(msg) = msg {
             let data: serde_json::Result<RecvItem> = serde_json::from_str(msg.to_str().unwrap());
-            if let Ok(data) = data {
-                match data {
+            match data {
+                Ok(data) => match data {
                     RecvItem::Event(event) => {
                         event_sender
                             .send(crate::EventChannelItem::Event(event))
@@ -101,14 +101,16 @@ async fn stream_recv(
                     RecvItem::ApiResp(api_resp) => {
                         apiresp_watch_sender.send(api_resp).unwrap();
                     }
+                },
+                Err(e) => {
+                    tracing::event!(
+                        tracing::Level::ERROR,
+                        "Serialize Msg failed! Msg:{:?}\nError:{}",
+                        msg.to_str().unwrap(),
+                        e
+                    );
+                    std::process::exit(101);
                 }
-            } else {
-                tracing::event!(
-                    tracing::Level::ERROR,
-                    "Serialize Msg failed! Msg:{:?}",
-                    msg.to_str().unwrap()
-                );
-                std::process::exit(101);
             }
         } else {
             tracing::event!(

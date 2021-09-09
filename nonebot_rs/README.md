@@ -53,7 +53,7 @@ fn main() {
 Matcher 开发：
 
 ```rust
-use crate::matcher::prelude::*;
+use nonebot_rs::matcher::prelude::*;
 use rcnb_rs::encode;
 
 #[derive(Clone)]   // handler struct 需要生成 Clone trait
@@ -130,16 +130,16 @@ async fn send_a_msg(bot: nonebot_rs::Bot) {
 }
 ```
 
-在你的入口文件 `main.rs` 注册定时任务
+注册定时任务
 
 ```rust
 use nonebot_rs;
 
 fn main() {
-let mut nb = nonebot_rs::Nonebot::new();
-    .add_message_matchers(r6s());
-nb.scheduler.add(clock::clock(&nb)).unwrap();
-nb.run()
+  let mut nb = nonebot_rs::Nonebot::new();
+      .add_message_matchers(r6s());
+  nb.scheduler.add(clock(&nb)).unwrap();
+  nb.run()
 }
 ```
 

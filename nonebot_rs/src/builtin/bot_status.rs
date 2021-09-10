@@ -1,6 +1,9 @@
 use crate::matcher::prelude::*;
 
-struct Status {}
+#[derive(Debug)]
+struct Status {
+    test: Option<String>,
+}
 
 #[async_trait]
 impl Handler<MessageEvent> for Status {
@@ -36,8 +39,16 @@ async fn build_status(event: &MessageEvent, matcher: &Matcher<MessageEvent>) -> 
     )
 }
 
-pub fn bot_status() -> Matcher<MessageEvent> {
-    Matcher::new("Bot Status", Status {}).add_rule(rules::is_superuser())
+pub fn bot_status(config: Option<&Value>) -> Matcher<MessageEvent> {
+    let mut status = Status { test: None };
+    if let Some(config) = config {
+        if let Some(test) = config.get("test") {
+            if let Some(test) = test.as_str() {
+                status.test = Some(test.to_string())
+            }
+        }
+    }
+    Matcher::new("BotStatus", status).add_rule(rules::is_superuser())
 }
 
 fn format_time(time: i64) -> String {

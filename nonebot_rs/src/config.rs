@@ -5,16 +5,20 @@ use std::collections::HashMap;
 static CONFIG_PATH: &str = "Nonebotrs.toml";
 
 /// nbrs 配置项结构体
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NbConfig {
     /// 全局配置
     pub global: GlobalConfig,
     /// bot 配置
     pub bots: Option<HashMap<String, BotConfig>>,
+    /// Matcher 配置
+    pub matchers: Option<HashMap<String, serde_json::Value>>,
+    /// Schedule Job 配置
+    pub jobs: Option<HashMap<String, serde_json::Value>>, // todo
 }
 
 /// nbrs 全局配置
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GlobalConfig {
     /// Host
     pub host: std::net::Ipv4Addr,
@@ -70,6 +74,8 @@ impl Default for NbConfig {
                 command_starts: vec!["/".to_string()],
             },
             bots: None,
+            matchers: None,
+            jobs: None,
         }
     }
 }
@@ -99,6 +105,14 @@ impl NbConfig {
             };
         }
         config
+    }
+
+    pub fn get_matcher_config(&self, matcher_name: &str) -> Option<&serde_json::Value> {
+        if let Some(matchers_config) = &self.matchers {
+            matchers_config.get(matcher_name)
+        } else {
+            None
+        }
     }
 
     /// 生成 BotConfig

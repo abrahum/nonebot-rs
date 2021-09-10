@@ -5,57 +5,48 @@ use crate::message::Message;
 use mlua::prelude::*;
 use std::collections::HashMap;
 
-pub fn just_run(
+pub fn run_lua_scripts(
     lua_scripts: &Option<HashMap<String, String>>,
     event: MessageEvent,
     bot: crate::Bot,
 ) {
     if let Some(lua_scripts) = lua_scripts {
-        for (script_name, script) in lua_scripts {
-            event!(
-                Level::INFO,
-                "Running Lua-Script {} for Bot {}",
-                script_name.blue(),
-                bot.bot_id.red()
-            );
+        event!(Level::DEBUG, "[{}] Running Lua-Script", bot.bot_id.red());
+        for (script_name, script_path) in lua_scripts {
+            run_lua_script(&script_name, &script_path, &event, &bot);
+        }
+        event!(Level::DEBUG, "[{}] Finish Lua-Script", bot.bot_id.red());
+    }
+}
 
-            let path = std::path::PathBuf::from(&script);
-            match std::fs::read_to_string(&path) {
-                Ok(s) => {
-                    let lua = Lua::new();
-                    lua.globals()
-                        .set("Message", event.get_raw_message())
-                        .unwrap();
-                    lua.load(&s).exec().unwrap();
-                    let r_msg: String = lua.globals().get("Rmessage").unwrap();
-                    let movebot = bot.clone();
-                    match &event {
-                        MessageEvent::Private(p) => {
-                            let p = p.clone();
-                            tokio::spawn(async move {
-                                movebot
-                                    .send_private_msg(&p.user_id, vec![Message::text(r_msg)])
-                                    .await
-                            });
-                        }
-                        MessageEvent::Group(g) => {
-                            let g = g.clone();
-                            tokio::spawn(async move {
-                                movebot
-                                    .send_group_msg(&g.group_id, vec![Message::text(r_msg)])
-                                    .await
-                            });
-                        }
-                    }
+fn run_lua_script(script_name: &str, script_path: &str, event: &MessageEvent, bot: &crate::Bot) {
+    let path = std::path::PathBuf::from(&script_path);
+    match std::fs::read_to_string(&path) {
+        Ok(s) => {
+            let bot = bot.clone();
+            let event = event.clone();
+            let lua = Lua::new();
+            lua.globals()
+                .set("Message", event.get_raw_message())
+                .unwrap();
+            lua.load(&s).exec().unwrap();
+            let r_msg = lua.globals().get("Rmessage");
+            match r_msg {
+                Ok(r_msg) => {
                     event!(
                         Level::INFO,
-                        "Finish Lua-Script {} for Bot {}",
-                        script_name.blue(),
-                        bot.bot_id.red()
+                        "[{}] Matched Lua-Script {}",
+                        bot.bot_id.red(),
+                        script_name.blue()
                     );
+                    tokio::spawn(async move {
+                        bot.send_by_message_event(&event, vec![Message::text(r_msg)])
+                            .await
+                    });
                 }
-                Err(e) => event!(Level::WARN, "Open Lua File {} Failed：{}", script, e),
+                _ => {}
             }
         }
+        Err(e) => event!(Level::WARN, "Open Lua File {} Failed：{}", script_name, e),
     }
 }

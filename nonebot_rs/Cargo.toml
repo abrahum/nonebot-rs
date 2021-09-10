@@ -62,4 +62,4 @@ optional = true
 [dependencies.mlua]
 version = "0.6"
 optional = true
-features = ["lua54", "serialize", "vendored"]
+features = ["lua54", "serialize", "vendored", "async"]

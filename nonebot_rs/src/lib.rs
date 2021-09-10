@@ -334,7 +334,7 @@ impl Nonebot {
                 #[cfg(feature = "lua")]
                 {
                     use event::SelfId;
-                    lua::just_run(
+                    lua::run_lua_scripts(
                         &self.config.lua,
                         e.clone(),
                         self.bots.get(&e.get_self_id()).unwrap().clone(),

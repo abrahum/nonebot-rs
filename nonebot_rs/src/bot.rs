@@ -1,4 +1,5 @@
 use crate::api_resp::{self, RespData};
+use crate::event::MessageEvent;
 use crate::{api, config, message, utils, ApiChannelItem, ApiResp};
 use colored::*;
 use tokio::sync::{mpsc, watch};
@@ -130,6 +131,14 @@ impl Bot {
             msg,
             user_id.to_string().green()
         );
+    }
+
+    /// 根据 MessageEvent 类型发送私聊消息或群消息
+    pub async fn send_by_message_event(&self, event: &MessageEvent, msg: Vec<message::Message>) {
+        match event {
+            MessageEvent::Private(p) => self.send_private_msg(&p.user_id, msg).await,
+            MessageEvent::Group(g) => self.send_group_msg(&g.group_id, msg).await,
+        }
     }
 
     /// 请求 Onebot Api，不等待 Onebot 返回

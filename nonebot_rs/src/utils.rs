@@ -57,40 +57,26 @@ where
     d.deserialize_any(JsonIdVisitor)
 }
 
+struct OptionJsonIdVisitor;
+
+impl<'de> serde::de::Visitor<'de> for OptionJsonIdVisitor {
+    type Value = Option<String>;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("a i64 or str containing json data")
+    }
+
+    fn visit_some<D>(self, d: D) -> Result<Option<String>, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        Ok(Some(d.deserialize_any(JsonIdVisitor)?))
+    }
+}
+
 pub fn option_id_deserializer<'de, D>(d: D) -> Result<Option<String>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    struct OptionJsonIdVisitor;
-
-    impl<'de> serde::de::Visitor<'de> for OptionJsonIdVisitor {
-        type Value = Option<String>;
-
-        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-            formatter.write_str("a i64 or str containing json data")
-        }
-
-        fn visit_some<D>(self, d: D) -> Result<Self::Value, D::Error>
-        where
-            D: serde::de::Deserializer<'de>,
-        {
-            Ok(Some(d.deserialize_any(JsonIdVisitor)?))
-        }
-
-        fn visit_none<E>(self) -> Result<Self::Value, E>
-        where
-            E: serde::de::Error,
-        {
-            Ok(None)
-        }
-
-        fn visit_unit<E>(self) -> Result<Self::Value, E>
-        where
-            E: serde::de::Error,
-        {
-            Ok(None)
-        }
-    }
-
     d.deserialize_option(OptionJsonIdVisitor)
 }

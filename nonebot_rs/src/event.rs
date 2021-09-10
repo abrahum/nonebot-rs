@@ -216,9 +216,11 @@ pub struct NoticeEvent {
     pub sub_type: Option<String>,
     /// 群消息群号
     #[serde(deserialize_with = "option_id_deserializer")]
+    #[serde(default)]
     pub group_id: Option<String>,
     /// 操作者 QQ 号
     #[serde(deserialize_with = "option_id_deserializer")]
+    #[serde(default)]
     pub operator_id: Option<String>,
     /// 发送者 ID
     #[serde(deserialize_with = "id_deserializer")]
@@ -231,6 +233,7 @@ pub struct NoticeEvent {
     pub message_id: Option<i64>,
     /// 目标 QQ 号
     #[serde(deserialize_with = "option_id_deserializer")]
+    #[serde(default)]
     pub target_id: Option<String>,
     /// 群荣耀类型
     pub honor_type: Option<String>,
@@ -270,6 +273,7 @@ pub struct RequestEvent {
     pub sub_type: Option<String>,
     /// 群号
     #[serde(deserialize_with = "option_id_deserializer")]
+    #[serde(default)]
     pub group_id: Option<String>,
 }
 

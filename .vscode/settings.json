@@ -1,2 +1,5 @@
 {
+    "rust.features": [
+    "lua"
+    ]
 }

@@ -40,11 +40,11 @@ API文档地址：[Docs.rs](https://docs.rs/nonebot_rs/)
   - [x] echo (基础应答功能)
   - [x] Rcnb (对话功能实现，目前写法还很丑陋···想办法打包中)
 - [x] built-in rules pre_matchers
-- [ ] Nbconfig
+- [x] Nbconfig
   - [x] 基本设置
   - [x] bot 设置
-  - [ ] Matcher 设置
-  - [ ] 定时任务设置
+  - [x] Matcher 设置
+  - [x] 定时任务设置
 - [ ] Message 构建 API 完善
 - [x] 插件式 Matcher 实现
   - [x] prematcher

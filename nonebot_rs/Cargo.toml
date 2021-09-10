@@ -17,6 +17,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 pyo = ["pyo3"]
 matcher = []
 scheduler = ["tokio-cron-scheduler"]
+lua = ["mlua"]
 
 [dependencies]
 tracing-subscriber = "0.2"
@@ -57,3 +58,8 @@ features = ["sink"]
 [dependencies.tokio-cron-scheduler]
 version = "0.2"
 optional = true
+
+[dependencies.mlua]
+version = "0.6"
+optional = true
+features = ["lua54", "serialize", "vendored"]

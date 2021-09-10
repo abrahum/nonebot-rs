@@ -165,6 +165,10 @@ pub mod config;
 pub mod event;
 /// logger
 pub mod log;
+/// Lua 插件
+#[cfg(feature = "lua")]
+#[cfg_attr(docsrs, doc(cfg(feature = "lua")))]
+pub mod lua;
 /// Matcher 定义
 #[cfg(feature = "matcher")]
 #[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
@@ -303,6 +307,7 @@ impl Nonebot {
     pub fn pre_run(&self) {
         use colored::*;
         log::init(self.config.global.debug, self.config.global.trace);
+        tracing::event!(tracing::Level::DEBUG, "Loaded Config {:?}", self.config);
         tracing::event!(
             tracing::Level::INFO,
             "{}",
@@ -326,6 +331,15 @@ impl Nonebot {
         match &e {
             event::Event::Message(e) => {
                 builtin::logger(&e);
+                #[cfg(feature = "lua")]
+                {
+                    use event::SelfId;
+                    lua::just_run(
+                        &self.config.lua,
+                        e.clone(),
+                        self.bots.get(&e.get_self_id()).unwrap().clone(),
+                    );
+                }
             }
             event::Event::Meta(e) => {
                 builtin::metahandle(&e);

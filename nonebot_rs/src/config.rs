@@ -14,7 +14,11 @@ pub struct NbConfig {
     /// Matcher 配置
     pub matchers: Option<HashMap<String, serde_json::Value>>,
     /// Schedule Job 配置
-    pub jobs: Option<HashMap<String, serde_json::Value>>, // todo
+    pub jobs: Option<HashMap<String, serde_json::Value>>,
+    /// Lua 配置
+    #[cfg(feature = "lua")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
+    pub lua: Option<HashMap<String, String>>,
 }
 
 /// nbrs 全局配置
@@ -76,6 +80,7 @@ impl Default for NbConfig {
             bots: None,
             matchers: None,
             jobs: None,
+            lua: None,
         }
     }
 }
@@ -110,6 +115,14 @@ impl NbConfig {
     pub fn get_matcher_config(&self, matcher_name: &str) -> Option<&serde_json::Value> {
         if let Some(matchers_config) = &self.matchers {
             matchers_config.get(matcher_name)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_job_config(&self, job_name: &str) -> Option<&serde_json::Value> {
+        if let Some(job_config) = &self.jobs {
+            job_config.get(job_name)
         } else {
             None
         }

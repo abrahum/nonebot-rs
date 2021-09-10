@@ -126,6 +126,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bstr"
+version = "0.2.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "90682c8d613ad3373e66de8c6411e0ae2ab2571e879d2efbf73558cc66f21279"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -240,6 +249,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "80df024fbc5ac80f87dfef0d9f5209a252f2a497f7f42944cff24d8253cac065"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "erased-serde"
+version = "0.3.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3de9ad4541d99dc22b59134e7ff8dc3d6c988c89ecd7324bf10a8362b07a2afa"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
@@ -685,6 +703,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "lua-src"
+version = "543.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b72914332bf1ef0e1185b229135d639f11a4a8ccfd32852db8e52419c04c0247"
+dependencies = [
+ "cc",
+]
+
+[[package]]
+name = "luajit-src"
+version = "210.2.0+resty5f13855"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "49f85722ea9e022305a077b916c9271011a195ee8dc9b2b764fc78b0378e3b72"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "matchers"
 version = "0.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -731,6 +767,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9f1c5b025cda876f66ef43a113f91ebc9f4ccef34843000e0adf6ebbab84e21"
 dependencies = [
  "winapi",
+]
+
+[[package]]
+name = "mlua"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a9da8658821057ea9d9ac349a02960be68e967f8a1e4b2a9d9efaefc4b9f2f47"
+dependencies = [
+ "bstr",
+ "cc",
+ "erased-serde",
+ "lua-src",
+ "luajit-src",
+ "num-traits",
+ "once_cell",
+ "pkg-config",
+ "serde",
 ]
 
 [[package]]
@@ -799,6 +852,7 @@ dependencies = [
  "headers",
  "http",
  "lazy_static",
+ "mlua",
  "pyo3",
  "rcnb-rs",
  "serde",

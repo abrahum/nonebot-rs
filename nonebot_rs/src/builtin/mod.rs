@@ -1,7 +1,12 @@
+/// Bot Status
+#[cfg(feature = "matcher")]
+#[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
+pub mod bot_status;
 /// 内建 echo Matcher
 #[cfg(feature = "matcher")]
 #[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
 pub mod echo;
+pub mod logger;
 #[doc(hidden)]
 pub mod macros;
 /// 内建 PreMatcher 函数
@@ -16,50 +21,8 @@ pub mod rcnb;
 #[cfg(feature = "matcher")]
 #[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
 pub mod rules;
-/// Bot Status
-#[cfg(feature = "matcher")]
-#[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
-pub mod bot_status;
 
-use crate::event::{MessageEvent, MetaEvent};
-use colored::*;
 use tracing::{event, Level};
-
-#[doc(hidden)]
-pub fn logger(event: &MessageEvent) {
-    match &event {
-        MessageEvent::Private(p) => {
-            let mut user_id = p.user_id.to_string();
-            while user_id.len() < 10 {
-                user_id.insert(0, ' ');
-            }
-            event!(
-                Level::INFO,
-                "{} [{}] -> {} from {}({})",
-                user_id.green(),
-                p.self_id.to_string().red(),
-                p.raw_message,
-                p.sender.nickname.to_string().blue(),
-                p.user_id.to_string().green(),
-            )
-        }
-        MessageEvent::Group(g) => {
-            let mut group_id = g.group_id.to_string();
-            while group_id.len() < 10 {
-                group_id.insert(0, ' ');
-            }
-            event!(
-                Level::INFO,
-                "{} [{}] -> {} from {}({})",
-                group_id.magenta(),
-                g.self_id.to_string().red(),
-                g.raw_message,
-                g.sender.nickname.to_string().blue(),
-                g.user_id.to_string().green(),
-            )
-        }
-    }
-}
 
 #[doc(hidden)]
 pub fn resp_logger(resp: &crate::api_resp::ApiResp) {
@@ -67,12 +30,5 @@ pub fn resp_logger(resp: &crate::api_resp::ApiResp) {
         event!(Level::DEBUG, "{} success", resp.echo);
     } else {
         event!(Level::INFO, "{} failed", resp.echo);
-    }
-}
-
-#[doc(hidden)]
-pub fn metahandle(event: &MetaEvent) {
-    if &event.meta_event_type == "heartbeat" {
-        event!(Level::TRACE, "Recive HeartBeat")
     }
 }

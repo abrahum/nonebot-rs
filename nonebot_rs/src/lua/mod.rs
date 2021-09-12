@@ -1,21 +1,46 @@
 // minimal
-use crate::event::MessageEvent;
+use crate::event::SelfId;
+use crate::event::{Event, MessageEvent};
 use crate::log::{colored::*, event, Level};
 use crate::message::Message;
 use mlua::prelude::*;
 use std::collections::HashMap;
 
-pub fn run_lua_scripts(
-    lua_scripts: &Option<HashMap<String, String>>,
-    event: MessageEvent,
-    bot: crate::Bot,
-) {
-    if let Some(lua_scripts) = lua_scripts {
-        event!(Level::DEBUG, "[{}] Running Lua-Script", bot.bot_id.red());
-        for (script_name, script_path) in lua_scripts {
-            run_lua_script(&script_name, &script_path, &event, &bot);
+#[derive(Debug, Clone)]
+pub struct LuaPlugin {
+    bot_getter: Option<crate::BotGettter>,
+    scripts: HashMap<String, String>,
+}
+
+impl LuaPlugin {
+    pub fn new(scripts: HashMap<String, String>) -> Self {
+        LuaPlugin {
+            bot_getter: None,
+            scripts: scripts,
         }
-        event!(Level::DEBUG, "[{}] Finish Lua-Script", bot.bot_id.red());
+    }
+
+    pub fn run_lua_scripts(&mut self, event: MessageEvent) {
+        let bots = self.bot_getter.clone().unwrap().borrow().clone();
+        if let Some(bot) = bots.get(&event.get_self_id()) {
+            event!(Level::DEBUG, "[{}] Running Lua-Script", bot.bot_id.red());
+            for (script_name, script_path) in &self.scripts {
+                run_lua_script(&script_name, &script_path, &event, &bot);
+            }
+            event!(Level::DEBUG, "[{}] Finish Lua-Script", bot.bot_id.red());
+        }
+    }
+
+    async fn event_recv(mut self, mut event_receiver: crate::EventReceiver) {
+        while let Ok(event) = event_receiver.recv().await {
+            match event {
+                Event::Message(m) => {
+                    self.run_lua_scripts(m);
+                }
+
+                _ => {}
+            }
+        }
     }
 }
 
@@ -48,5 +73,13 @@ fn run_lua_script(script_name: &str, script_path: &str, event: &MessageEvent, bo
             }
         }
         Err(e) => event!(Level::WARN, "Open Lua File {} Failed：{}", script_name, e),
+    }
+}
+
+impl crate::Plugin for LuaPlugin {
+    fn run(&self, event_receiver: crate::EventReceiver, bot_getter: crate::BotGettter) {
+        let mut l = self.clone();
+        l.bot_getter = Some(bot_getter.clone());
+        tokio::spawn(l.event_recv(event_receiver));
     }
 }

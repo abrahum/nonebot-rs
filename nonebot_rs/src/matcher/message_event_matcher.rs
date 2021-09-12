@@ -70,6 +70,7 @@ impl Matcher<MessageEvent> {
             "Temp".to_string(),
             crate::config::BotConfig::default(),
             sender,
+            self.bot.clone().unwrap().action_sender.clone(),
             self.bot.clone().unwrap().api_resp_watcher.clone(),
         );
         m.bot = Some(bot);
@@ -90,7 +91,7 @@ impl Matcher<MessageEvent> {
                 }
                 ApiChannelItem::TimeOut => return None,
                 // 中转 temp Matcher 的 Remove Action
-                ApiChannelItem::Action(action) => self.set(action).await,
+                // ApiChannelItem::Action(action) => self.set(action).await,
                 _ => {
                     use colored::*;
                     tracing::event!(

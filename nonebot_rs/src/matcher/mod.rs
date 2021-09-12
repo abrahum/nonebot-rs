@@ -19,7 +19,7 @@ pub mod set_get;
 pub type Rule<E> = Arc<dyn Fn(&E, &BotConfig) -> bool + Send + Sync>;
 /// permatcher 函数类型
 pub type PreMatcher<E> = fn(&mut E, BotConfig) -> bool;
-// pub type AfterMatcher<E> = fn(&mut E, BotConfig) -> AfterMatcherResult;
+const PLUGIN_NAME: &'static str = "Matchers";
 
 /// 参与匹配的最小单元
 ///
@@ -155,7 +155,12 @@ where
     }
 
     #[doc(hidden)]
-    pub async fn match_(&self, event: E, config: BotConfig) -> bool
+    pub async fn match_(
+        &self,
+        event: E,
+        config: BotConfig,
+        matchers: &mut matchers::Matchers,
+    ) -> bool
     where
         E: Send + 'static + SelfId,
     {
@@ -163,10 +168,7 @@ where
         let mut event = event.clone();
         if let Some(timeout) = self.timeout {
             if timestamp() > timeout {
-                self.set(Action::RemoveMatcher {
-                    name: self.name.clone(),
-                })
-                .await;
+                matchers.remove_matcher(&self.name);
                 self.handler.timeout_drop(&self);
                 return false;
             }
@@ -191,21 +193,24 @@ where
 
     /// 发送 nbrs 内部设置 Action
     pub async fn set(&self, set: Action) {
-        self.bot
-            .clone()
-            .unwrap()
-            .api_sender
-            .send(crate::ApiChannelItem::Action(set))
-            .await
-            .unwrap();
+        if let Some(bot) = &self.bot {
+            bot.action_sender.send(set).await.unwrap();
+        }
+        // self.bot
+        //     .clone()
+        //     .unwrap()
+        //     .api_sender
+        //     .send(crate::ApiChannelItem::Action(set))
+        //     .await
+        //     .unwrap();
     }
 
     /// 向指定 bot_id 添加 Matcher<MessageEvent>
     pub async fn set_message_matcher(&self, matcher: Matcher<MessageEvent>) {
-        let set = Action::AddMessageEventMatcher {
-            message_event_matcher: matcher,
-        };
-        self.set(set).await;
+        // let set = Action::AddPlugin {
+        //     message_event_matcher: matcher,
+        // };
+        // self.set(set).await;
     }
 }
 

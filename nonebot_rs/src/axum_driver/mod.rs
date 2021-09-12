@@ -1,4 +1,4 @@
-use crate::EventChannelItem;
+use crate::{ActionSender, EventSender};
 use axum::{
     extract::TypedHeader,
     prelude::*,
@@ -14,7 +14,8 @@ mod xheaders;
 pub async fn run(
     host: std::net::Ipv4Addr,
     port: u16,
-    event_sender: mpsc::Sender<EventChannelItem>,
+    event_sender: EventSender,
+    action_sender: ActionSender,
 ) {
     let handle_socket =
         |socket: WebSocket,
@@ -42,13 +43,14 @@ pub async fn run(
                 } else {
                     None
                 };
-                event_sender
-                    .send(crate::EventChannelItem::Action(crate::Action::AddBot {
+                action_sender
+                    .send(crate::Action::AddBot {
                         bot_id: x_self_id.0.clone(),
                         api_sender: sender,
+                        action_sender: action_sender.clone(),
                         auth: auth,
                         api_resp_watcher: api_resp_watcher,
-                    }))
+                    })
                     .await
                     .unwrap();
                 event!(
@@ -62,6 +64,7 @@ pub async fn run(
                     socket,
                     receiver,
                     event_sender,
+                    action_sender,
                     apiresp_watch_sender,
                     x_self_id.0,
                 )
@@ -81,7 +84,8 @@ pub async fn run(
 
 async fn stream_recv(
     stream: futures_util::stream::SplitStream<axum::ws::WebSocket>,
-    event_sender: &mpsc::Sender<crate::EventChannelItem>,
+    event_sender: &EventSender,
+    action_sender: &ActionSender,
     apiresp_watch_sender: &watch::Sender<crate::api_resp::ApiResp>,
     bot_id: String,
 ) -> Option<futures_util::stream::SplitStream<axum::ws::WebSocket>> {
@@ -93,10 +97,7 @@ async fn stream_recv(
             match data {
                 Ok(data) => match data {
                     RecvItem::Event(event) => {
-                        event_sender
-                            .send(crate::EventChannelItem::Event(event))
-                            .await
-                            .unwrap();
+                        event_sender.send(event).unwrap();
                     }
                     RecvItem::ApiResp(api_resp) => {
                         apiresp_watch_sender.send(api_resp).unwrap();
@@ -119,10 +120,8 @@ async fn stream_recv(
                 bot_id.to_string().red(),
                 "disconnect."
             );
-            event_sender
-                .send(crate::EventChannelItem::Action(crate::Action::RemoveBot {
-                    bot_id: bot_id,
-                }))
+            action_sender
+                .send(crate::Action::RemoveBot { bot_id: bot_id })
                 .await
                 .unwrap();
             return None;
@@ -134,7 +133,8 @@ async fn stream_recv(
 async fn handle_socket(
     socket: WebSocket,
     mut api_receiver: mpsc::Receiver<crate::ApiChannelItem>,
-    event_sender: mpsc::Sender<crate::EventChannelItem>,
+    event_sender: EventSender,
+    action_sender: ActionSender,
     apiresp_watch_sender: watch::Sender<crate::api_resp::ApiResp>,
     bot_id: String,
 ) {
@@ -147,6 +147,7 @@ async fn handle_socket(
             let r = stream_recv(
                 stream,
                 &another_event_sender,
+                &action_sender,
                 &apiresp_watch_sender,
                 bot_id.clone(),
             )
@@ -166,13 +167,6 @@ async fn handle_socket(
                 crate::ApiChannelItem::Api(api) => {
                     let json_string = serde_json::to_string(&api).unwrap();
                     sink.send(axum::ws::Message::text(json_string))
-                        .await
-                        .unwrap();
-                }
-                // Nonebot Action
-                crate::ApiChannelItem::Action(action) => {
-                    event_sender
-                        .send(crate::EventChannelItem::Action(action))
                         .await
                         .unwrap();
                 }

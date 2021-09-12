@@ -183,7 +183,7 @@ pub mod pyo;
 mod utils;
 
 use std::collections::HashMap;
-use tokio::sync::{mpsc, watch};
+use tokio::sync::{broadcast, mpsc, watch};
 #[cfg(feature = "scheduler")]
 #[cfg_attr(docsrs, doc(cfg(feature = "scheduler")))]
 pub use tokio_cron_scheduler::Job;
@@ -204,6 +204,8 @@ pub use bot::Bot;
 pub use matcher::matchers::{Matchers, MatchersBTreeMap, MatchersHashMap};
 #[doc(inline)]
 pub use message::Message;
+#[doc(inline)]
+pub use plugin::Plugin;
 
 #[macro_use]
 extern crate lazy_static;
@@ -212,7 +214,12 @@ extern crate lazy_static;
 pub type ApiSender = mpsc::Sender<ApiChannelItem>;
 #[doc(hidden)]
 pub type ApiRespWatcher = watch::Receiver<ApiResp>;
-
+pub type EventSender = broadcast::Sender<event::Event>;
+pub type EventReceiver = broadcast::Receiver<event::Event>;
+pub type ActionSender = mpsc::Sender<Action>;
+pub type ActionReceiver = mpsc::Receiver<Action>;
+pub type BotSender = watch::Sender<HashMap<String, Bot>>;
+pub type BotGettter = watch::Receiver<HashMap<String, Bot>>;
 /// nbrs 本体
 ///
 /// 用于注册 `Matcher`，暂存配置项，以及启动实例
@@ -221,16 +228,18 @@ pub struct Nonebot {
     pub config: config::NbConfig,
     /// 储存 Nonebot 下连接的 Bot
     pub bots: HashMap<String, Bot>,
-    /// 暂存 Events Sender
-    event_sender: mpsc::Sender<EventChannelItem>,
-    /// Events Receiver
-    event_receiver: mpsc::Receiver<EventChannelItem>,
+    /// 暂存 Events Sender 由 WebSocket 广播 Event
+    event_sender: EventSender,
+    action_sender: ActionSender,
+    action_receiver: ActionReceiver,
     /// Bot Sender
-    pub bot_sender: watch::Sender<HashMap<String, Bot>>,
+    pub bot_sender: BotSender,
     /// Bot Getter
-    pub bot_getter: watch::Receiver<HashMap<String, Bot>>,
-    #[cfg(feature = "matcher")]
-    pub matchers: Matchers,
+    pub bot_getter: BotGettter,
+    /// event handler
+    plugins: HashMap<String, std::sync::Arc<dyn Plugin + Send + Sync>>,
+    // #[cfg(feature = "matcher")]
+    // pub matchers: Matchers,
     #[cfg(feature = "scheduler")]
     pub scheduler: JobScheduler,
 }
@@ -238,7 +247,6 @@ pub struct Nonebot {
 /// api channel 传递项
 #[derive(Debug)]
 pub enum ApiChannelItem {
-    Action(Action),
     /// Onebot Api
     Api(api::Api),
     /// Event 用于临时 Matcher 与原 Matcher 传递事件 todo
@@ -260,12 +268,14 @@ impl Nonebot {
         &mut self,
         bot_id: String,
         api_sender: mpsc::Sender<ApiChannelItem>,
+        action_sender: ActionSender,
         api_resp_watcher: watch::Receiver<ApiResp>,
     ) -> Bot {
         let bot = Bot::new(
             bot_id.clone(),
             self.config.gen_bot_config(&bot_id),
             api_sender,
+            action_sender,
             api_resp_watcher,
         );
         self.bots.insert(bot_id.to_string(), bot.clone());
@@ -287,24 +297,38 @@ impl Nonebot {
     /// 新建一个 Matchers 为空的 Nonebot 结构体
     pub fn new() -> Self {
         let nb_config = config::NbConfig::load();
-        let (event_sender, event_recevier) = tokio::sync::mpsc::channel(32);
+        let (event_sender, _) = tokio::sync::broadcast::channel(32);
+        let (action_sender, action_receiver) = tokio::sync::mpsc::channel(32);
         let (bot_sender, bot_getter) = watch::channel(HashMap::new());
         Nonebot {
             bots: HashMap::new(),
             config: nb_config,
             event_sender: event_sender,
-            event_receiver: event_recevier,
+            action_sender: action_sender,
+            action_receiver: action_receiver,
             bot_sender: bot_sender,
             bot_getter: bot_getter,
-            #[cfg(feature = "matcher")]
-            matchers: Matchers::new(None, None, None, None),
+            plugins: HashMap::new(),
+            // #[cfg(feature = "matcher")]
+            // matchers: Matchers::new_empty(),
             #[cfg(feature = "scheduler")]
             scheduler: JobScheduler::new(),
         }
     }
 
+    pub fn add_plugin<P>(&mut self, plugin_name: &str, p: std::sync::Arc<P>)
+    where
+        P: Plugin + Send + Sync + 'static,
+    {
+        self.plugins.insert(plugin_name.to_owned(), p);
+    }
+
+    pub fn remove_plugin(&mut self, plugin_name: &str) {
+        self.plugins.remove(plugin_name);
+    }
+
     #[doc(hidden)]
-    pub fn pre_run(&self) {
+    pub fn pre_run(&mut self) {
         use colored::*;
         log::init(self.config.global.debug, self.config.global.trace);
         tracing::event!(tracing::Level::DEBUG, "Loaded Config {:?}", self.config);
@@ -313,57 +337,33 @@ impl Nonebot {
             "{}",
             "高性能自律実験4号機が稼働中····".red()
         );
+        self.add_plugin("Logger", std::sync::Arc::new(builtin::logger::Logger));
+        for (plugin_name, plugin) in &self.plugins {
+            plugin.run(self.event_sender.subscribe(), self.bot_getter.clone());
+            tracing::event!(
+                tracing::Level::INFO,
+                "Plugin {} is loaded.",
+                plugin_name.red()
+            );
+        }
     }
 
     /// Nonebot EventChannel receive handle
     async fn recv(mut self) {
-        while let Some(event_channel_item) = self.event_receiver.recv().await {
-            match event_channel_item {
-                EventChannelItem::Action(action) => self.handle_action(action),
-                EventChannelItem::Event(e) => self.handle_event(e),
-            }
-        }
-    }
-
-    /// Nonebot Event handle
-    fn handle_event(&mut self, e: event::Event) {
-        tracing::event!(tracing::Level::TRACE, "handling events {:?}", e);
-        match &e {
-            event::Event::Message(e) => {
-                builtin::logger(&e);
-                #[cfg(feature = "lua")]
-                {
-                    use event::SelfId;
-                    lua::run_lua_scripts(
-                        &self.config.lua,
-                        e.clone(),
-                        self.bots.get(&e.get_self_id()).unwrap().clone(),
-                    );
-                }
-            }
-            event::Event::Meta(e) => {
-                builtin::metahandle(&e);
-            }
-            _ => {}
-        }
-
-        #[cfg(feature = "matcher")]
-        {
-            use event::SelfId;
-            let bot = self.bots.get(&e.get_self_id()).unwrap();
-            self.matchers
-                .handle_events(e, bot.config.clone(), bot.clone())
+        while let Some(action) = self.action_receiver.recv().await {
+            self.handle_action(action)
         }
     }
 
     /// 运行 Nonebot 实例
     #[tokio::main]
-    pub async fn run(self) {
+    pub async fn run(mut self) {
         self.pre_run();
         tokio::spawn(axum_driver::run(
             self.config.global.host,
             self.config.global.port,
             self.event_sender.clone(),
+            self.action_sender.clone(),
         ));
         #[cfg(feature = "scheduler")]
         tokio::spawn(self.scheduler.start());
@@ -371,12 +371,13 @@ impl Nonebot {
     }
 
     #[doc(hidden)]
-    pub async fn async_run(self) {
+    pub async fn async_run(mut self) {
         self.pre_run();
         tokio::spawn(axum_driver::run(
             self.config.global.host,
             self.config.global.port,
             self.event_sender.clone(),
+            self.action_sender.clone(),
         ));
         self.recv().await;
     }

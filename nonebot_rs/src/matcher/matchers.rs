@@ -1,4 +1,3 @@
-use crate::config::BotConfig;
 use crate::event::{Event, MessageEvent, MetaEvent, NoticeEvent, RequestEvent, SelfId};
 use crate::log::log_load_matchers;
 use crate::matcher::Matcher;
@@ -21,6 +20,7 @@ pub struct Matchers {
     pub request: MatchersBTreeMap<RequestEvent>,
     /// MetaEvent 对应 MatcherBTreeMap
     pub meta: MatchersBTreeMap<MetaEvent>,
+    bot_getter: Option<crate::BotGettter>,
 }
 
 impl Matchers {
@@ -36,7 +36,13 @@ impl Matchers {
             notice: unoptionb(&notice),
             request: unoptionb(&request),
             meta: unoptionb(&meta),
+            bot_getter: None,
         }
+    }
+
+    /// 新建空 Matchers
+    pub fn new_empty() -> Matchers {
+        Matchers::new(None, None, None, None)
     }
 
     pub fn get(&mut self, m: &Matchers) {
@@ -133,49 +139,51 @@ impl Matchers {
         disable_matcher_(&mut self.meta, name, disable);
     }
 
-    pub fn handle_events(&self, events: Event, config: BotConfig, bot: crate::bot::Bot) {
-        let mut matchers = self.clone();
-        tokio::spawn(async move {
-            match events {
-                Event::Message(e) => {
-                    Matchers::handle_event(&mut matchers.message, e, config, bot.clone()).await;
-                }
-                Event::Notice(e) => {
-                    Matchers::handle_event(&mut matchers.notice, e, config, bot.clone()).await;
-                }
-                Event::Request(e) => {
-                    Matchers::handle_event(&mut matchers.request, e, config, bot.clone()).await;
-                }
-                Event::Meta(e) => {
-                    Matchers::handle_event(&mut matchers.meta, e, config, bot.clone()).await;
-                }
+    async fn handle_events(&mut self, event: Event, bot: &crate::bot::Bot) {
+        match event {
+            Event::Message(e) => {
+                self.handle_event(self.message.clone(), e, bot.clone())
+                    .await;
             }
-        });
+            Event::Notice(e) => {
+                self.handle_event(self.notice.clone(), e, bot.clone()).await;
+            }
+            Event::Request(e) => {
+                self.handle_event(self.request.clone(), e, bot.clone())
+                    .await;
+            }
+            Event::Meta(e) => {
+                self.handle_event(self.meta.clone(), e, bot.clone()).await;
+            }
+        }
     }
 
     /// 接收按类型分发后的 Event 逐级匹配 Matcher
     async fn handle_event<E>(
-        matcherb: &mut crate::MatchersBTreeMap<E>,
-        e: E,
-        config: BotConfig,
+        &mut self,
+        mut matcherb: crate::MatchersBTreeMap<E>,
+        event: E,
         bot: crate::bot::Bot,
     ) where
         E: Clone + Send + 'static + std::fmt::Debug + SelfId,
     {
-        event!(Level::TRACE, "handling event {:?}", e);
+        event!(Level::TRACE, "handling event {:?}", event);
         // 根据不同 Event 类型，逐级匹配，判定是否 Block
         for (_, matcherh) in matcherb.iter_mut() {
-            if Matchers::handler_event_(matcherh, e.clone(), config.clone(), bot.clone()).await {
+            if self
+                ._handler_event_(matcherh, event.clone(), bot.clone())
+                .await
+            {
                 break;
             };
         }
     }
 
     #[doc(hidden)]
-    async fn handler_event_<E>(
+    async fn _handler_event_<E>(
+        &mut self,
         matcherh: &mut crate::MatchersHashMap<E>,
         e: E,
-        config: BotConfig,
         bot: crate::bot::Bot,
     ) -> bool
     where
@@ -184,10 +192,11 @@ impl Matchers {
         event!(Level::TRACE, "handling event_ {:?}", e);
         // 每级 Matcher 匹配，返回是否 block
         let mut get_block = false;
+        let config = bot.config.clone();
         for (name, matcher) in matcherh.iter_mut() {
             let matched = matcher
                 .build(bot.clone())
-                .match_(e.clone(), config.clone())
+                .match_(e.clone(), config.clone(), self)
                 .await;
             if matched {
                 event!(Level::INFO, "Matched {}", name);
@@ -195,15 +204,20 @@ impl Matchers {
                     get_block = true;
                 }
                 if matcher.is_temp() {
-                    matcher
-                        .set(crate::Action::RemoveMatcher {
-                            name: matcher.name.clone(),
-                        })
-                        .await;
+                    self.remove_matcher(&matcher.name);
                 }
             }
         }
         get_block
+    }
+
+    async fn event_recv(mut self, mut event_receiver: crate::EventReceiver) {
+        while let Ok(event) = event_receiver.recv().await {
+            let bots = self.bot_getter.clone().unwrap().borrow().clone();
+            if let Some(bot) = bots.get(&event.get_self_id()) {
+                self.handle_events(event, bot).await;
+            }
+        }
     }
 }
 
@@ -216,5 +230,13 @@ where
     match input {
         Some(t) => t.clone(),
         None => BTreeMap::new(),
+    }
+}
+
+impl crate::Plugin for Matchers {
+    fn run(&self, event_receiver: crate::EventReceiver, bot_getter: crate::BotGettter) {
+        let mut m = self.clone();
+        m.bot_getter = Some(bot_getter.clone());
+        tokio::spawn(m.event_recv(event_receiver));
     }
 }

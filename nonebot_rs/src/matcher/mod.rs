@@ -5,6 +5,7 @@ use crate::Action;
 use async_trait::async_trait;
 use std::sync::Arc;
 
+mod action;
 #[doc(hidden)]
 pub mod api;
 #[doc(hidden)]
@@ -33,6 +34,8 @@ where
     pub name: String,
     /// Bot
     pub bot: Option<crate::bot::Bot>,
+    /// Matchers Action Sender
+    action_sender: Option<matchers::ActionSender>,
     /// Matcher 的匹配优先级
     priority: i8,
     /// 前处理函数组，获取 &mut event
@@ -118,6 +121,7 @@ where
         Matcher {
             name: name.to_string(),
             bot: None,
+            action_sender: None,
             priority: 1,
             pre_matchers: vec![],
             rules: vec![],
@@ -207,10 +211,12 @@ where
 
     /// 向指定 bot_id 添加 Matcher<MessageEvent>
     pub async fn set_message_matcher(&self, matcher: Matcher<MessageEvent>) {
-        // let set = Action::AddPlugin {
-        //     message_event_matcher: matcher,
-        // };
-        // self.set(set).await;
+        let action = action::MatchersAction::AddMessageEventMatcher {
+            message_event_matcher: matcher,
+        };
+        if let Some(action_sender) = &self.action_sender {
+            action_sender.send(action).unwrap();
+        }
     }
 }
 

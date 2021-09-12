@@ -2,12 +2,15 @@ use crate::event::{Event, MessageEvent, MetaEvent, NoticeEvent, RequestEvent, Se
 use crate::log::log_load_matchers;
 use crate::matcher::Matcher;
 use std::collections::{BTreeMap, HashMap};
+use tokio::sync::broadcast;
 use tracing::{event, Level};
 
 /// 按 `priority` 依序存储 `MatchersHashMap`
 pub type MatchersBTreeMap<E> = BTreeMap<i8, MatchersHashMap<E>>;
 /// 使用唯一名字存储 `Matcher`
 pub type MatchersHashMap<E> = HashMap<String, Matcher<E>>;
+/// Matchers Action Sender
+pub type ActionSender = broadcast::Sender<super::action::MatchersAction>;
 
 /// 根据 `Event` 类型分类存储对应的 `Matcher`
 #[derive(Clone, Debug)]
@@ -20,7 +23,10 @@ pub struct Matchers {
     pub request: MatchersBTreeMap<RequestEvent>,
     /// MetaEvent 对应 MatcherBTreeMap
     pub meta: MatchersBTreeMap<MetaEvent>,
+    /// Bot Watch channel Receiver
     bot_getter: Option<crate::BotGettter>,
+    /// Matchers Action Sender
+    action_sender: ActionSender,
 }
 
 impl Matchers {
@@ -31,12 +37,14 @@ impl Matchers {
         request: Option<MatchersBTreeMap<RequestEvent>>,
         meta: Option<MatchersBTreeMap<MetaEvent>>,
     ) -> Matchers {
+        let (sender, _) = broadcast::channel(32);
         Matchers {
             message: unoptionb(&message),
             notice: unoptionb(&notice),
             request: unoptionb(&request),
             meta: unoptionb(&meta),
             bot_getter: None,
+            action_sender: sender,
         }
     }
 
@@ -212,7 +220,13 @@ impl Matchers {
     }
 
     async fn event_recv(mut self, mut event_receiver: crate::EventReceiver) {
+        let mut receiver = self.action_sender.subscribe();
         while let Ok(event) = event_receiver.recv().await {
+            match receiver.try_recv() {
+                Ok(action) => self.handle_action(action),
+                Err(_) => {}
+            }
+
             let bots = self.bot_getter.clone().unwrap().borrow().clone();
             if let Some(bot) = bots.get(&event.get_self_id()) {
                 self.handle_events(event, bot).await;

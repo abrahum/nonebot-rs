@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// nbrs 配置文件名
-static CONFIG_PATH: &str = "Nonebotrs.toml";
+pub static CONFIG_PATH: &str = "Nonebotrs.toml";
 
 /// nbrs 配置项结构体
 #[derive(Debug, Serialize, Deserialize, Clone)]

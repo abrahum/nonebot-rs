@@ -13,7 +13,7 @@ fn main() {
         .add_message_matcher(nonebot_rs::builtin::bot_status::bot_status(
             config.get_matcher_config("bot_status"),
         ));
-    nb.add_plugin("Matchers", std::sync::Arc::new(matchers));
+    nb.add_plugin(matchers);
 
     // let lua_config = nb.config.lua.clone();
     // let lua = nonebot_rs::lua::LuaPlugin::new(if let Some(config) = lua_config {

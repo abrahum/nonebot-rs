@@ -8,6 +8,6 @@ fn main() {
         .add_message_matcher(nonebot_rs::builtin::echo::echo2())
         .add_message_matcher(nonebot_rs::builtin::echo::echo())
         .add_message_matcher(nonebot_rs::builtin::rcnb::rcnb());
-    nb.add_plugin("Matchers", std::sync::Arc::new(matchers));
+    nb.add_plugin(matchers);
     nb.run()
 }

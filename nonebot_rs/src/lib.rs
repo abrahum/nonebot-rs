@@ -165,6 +165,7 @@ pub mod config;
 pub mod event;
 /// logger
 pub mod log;
+mod logger;
 /// Matcher 定义
 #[cfg(feature = "matcher")]
 #[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
@@ -222,7 +223,9 @@ pub struct Nonebot {
     pub bots: HashMap<String, Bot>,
     /// 暂存 Events Sender 由 WebSocket 广播 Event
     event_sender: EventSender,
+    /// Nonebot Action Sender
     action_sender: ActionSender,
+    /// Nonebot Action Receiver
     action_receiver: ActionReceiver,
     /// Bot Sender
     pub bot_sender: BotSender,
@@ -245,13 +248,6 @@ pub enum ApiChannelItem {
     MessageEvent(event::MessageEvent),
     /// Timeout
     TimeOut,
-}
-
-/// evnet channel 传递项
-#[derive(Debug)]
-pub enum EventChannelItem {
-    Action(Action),
-    Event(event::Event),
 }
 
 impl Nonebot {
@@ -308,11 +304,12 @@ impl Nonebot {
         }
     }
 
-    pub fn add_plugin<P>(&mut self, plugin_name: &str, p: std::sync::Arc<P>)
+    pub fn add_plugin<P>(&mut self, p: P)
     where
         P: Plugin + Send + Sync + 'static,
     {
-        self.plugins.insert(plugin_name.to_owned(), p);
+        self.plugins
+            .insert(p.plugin_name().to_owned(), std::sync::Arc::new(p));
     }
 
     pub fn remove_plugin(&mut self, plugin_name: &str) {
@@ -329,7 +326,7 @@ impl Nonebot {
             "{}",
             "高性能自律実験4号機が稼働中····".red()
         );
-        self.add_plugin("Logger", std::sync::Arc::new(builtin::logger::Logger));
+        self.add_plugin(logger::Logger);
         for (plugin_name, plugin) in &self.plugins {
             plugin.run(self.event_sender.subscribe(), self.bot_getter.clone());
             tracing::event!(

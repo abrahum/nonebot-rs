@@ -18,10 +18,11 @@ API文档地址：[Docs.rs](https://docs.rs/nonebot_rs/)
 
 ## 各项目简介
 
-- nonebot_rs：nbrs 本体
-- nbrs_no4：nbrs 实例项目
-- nbrs_matcher_r6s：nbrs Rainbow Six Siege 战绩查询插件
-- nbrs_py：使用 Nonebot_rs 作为核心的 Python module (未达到可用状态)
+- nonebot_rs: nbrs 本体
+- nbrs_no4: nbrs 实例项目
+- nbrs_lua: 使用 lua 为 nbrs 编写插件 (仅最小实例可用) 
+- nbrs_matcher_r6s: nbrs Rainbow Six Siege 战绩查询插件
+- nbrs_py: 使用 Nonebot_rs 作为核心的 Python module (未达到可用状态)
 
 ## To-Do List
 
@@ -40,12 +41,11 @@ API文档地址：[Docs.rs](https://docs.rs/nonebot_rs/)
   - [x] echo (基础应答功能)
   - [x] Rcnb (对话功能实现，目前写法还很丑陋···想办法打包中)
 - [x] built-in rules pre_matchers
-- [x] Nbconfig
+- [ ] Nbconfig
   - [x] 基本设置
   - [x] bot 设置
-  - [x] Matcher 设置
-  - [x] 定时任务设置
-- [ ] Message 构建 API 完善
+  - [ ] Plugin 设置 (需要重构)
+- [x] Message 构建 API 完善
 - [x] 插件式 Matcher 实现
   - [x] prematcher
   - [x] rules
@@ -56,7 +56,6 @@ API文档地址：[Docs.rs](https://docs.rs/nonebot_rs/)
 - [x] 文档
 - [x] 定时任务
 - [x] 声明宏
-- [ ] 使用 pyo3 搭建 nonebot-rs 版 Python 库(又绕回来了.jpg)
 
 </details>
 

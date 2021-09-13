@@ -6,7 +6,6 @@ pub mod bot_status;
 #[cfg(feature = "matcher")]
 #[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
 pub mod echo;
-pub mod logger;
 #[doc(hidden)]
 pub mod macros;
 /// 内建 PreMatcher 函数

@@ -1,14 +1,14 @@
 // minimal
-use crate::event::SelfId;
-use crate::event::{Event, MessageEvent};
-use crate::log::{colored::*, event, Level};
-use crate::message::Message;
 use mlua::prelude::*;
+use nonebot_rs::event::SelfId;
+use nonebot_rs::event::{Event, MessageEvent};
+use nonebot_rs::log::{colored::*, event, Level};
+use nonebot_rs::message::Message;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct LuaPlugin {
-    bot_getter: Option<crate::BotGettter>,
+    bot_getter: Option<nonebot_rs::BotGettter>,
     scripts: HashMap<String, String>,
 }
 
@@ -31,7 +31,7 @@ impl LuaPlugin {
         }
     }
 
-    async fn event_recv(mut self, mut event_receiver: crate::EventReceiver) {
+    async fn event_recv(mut self, mut event_receiver: nonebot_rs::EventReceiver) {
         while let Ok(event) = event_receiver.recv().await {
             match event {
                 Event::Message(m) => {
@@ -44,7 +44,12 @@ impl LuaPlugin {
     }
 }
 
-fn run_lua_script(script_name: &str, script_path: &str, event: &MessageEvent, bot: &crate::Bot) {
+fn run_lua_script(
+    script_name: &str,
+    script_path: &str,
+    event: &MessageEvent,
+    bot: &nonebot_rs::Bot,
+) {
     let path = std::path::PathBuf::from(&script_path);
     match std::fs::read_to_string(&path) {
         Ok(s) => {
@@ -76,10 +81,14 @@ fn run_lua_script(script_name: &str, script_path: &str, event: &MessageEvent, bo
     }
 }
 
-impl crate::Plugin for LuaPlugin {
-    fn run(&self, event_receiver: crate::EventReceiver, bot_getter: crate::BotGettter) {
+impl nonebot_rs::Plugin for LuaPlugin {
+    fn run(&self, event_receiver: nonebot_rs::EventReceiver, bot_getter: nonebot_rs::BotGettter) {
         let mut l = self.clone();
         l.bot_getter = Some(bot_getter.clone());
         tokio::spawn(l.event_recv(event_receiver));
+    }
+
+    fn plugin_name(&self) -> &'static str {
+        "Lua"
     }
 }

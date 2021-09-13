@@ -14,10 +14,8 @@ rustdoc-args = ["--cfg", "docsrs"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-pyo = ["pyo3"]
 matcher = []
 scheduler = ["tokio-cron-scheduler"]
-lua = ["mlua"]
 
 [dependencies]
 tracing-subscriber = "0.2"
@@ -30,10 +28,6 @@ toml = "0.5.8"
 async-trait = "0.1.51"
 colored = "2.0.0"
 rcnb-rs = "0.1.0"
-
-[dependencies.pyo3]
-version = "0.14.2"
-optional = true
 
 [dependencies.serde]
 version = "1.0"
@@ -58,8 +52,3 @@ features = ["sink"]
 [dependencies.tokio-cron-scheduler]
 version = "0.2"
 optional = true
-
-[dependencies.mlua]
-version = "0.6"
-optional = true
-features = ["lua54", "serialize", "vendored", "async"]

@@ -1,3 +1,3 @@
 [workspace]
 
-members = ["nonebot_rs", "nbrs_py", "nbrs_matcher_r6s", "nbrs_no4"]
+members = ["nonebot_rs", "nbrs_py", "nbrs_matcher_r6s", "nbrs_no4", "nbrs_lua"]

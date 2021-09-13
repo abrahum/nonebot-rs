@@ -63,4 +63,8 @@ impl crate::Plugin for Logger {
         let l = self.clone();
         tokio::spawn(l.event_recv(event_receiver));
     }
+
+    fn plugin_name(&self) -> &'static str {
+        "Logger"
+    }
 }

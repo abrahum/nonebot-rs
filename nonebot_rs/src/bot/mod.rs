@@ -18,6 +18,7 @@ pub struct Bot {
     pub config: config::BotConfig,
     /// 暂存调用 Bot api
     pub api_sender: mpsc::Sender<ApiChannelItem>,
+    /// Nonebot Action Sender
     pub action_sender: crate::ActionSender,
     /// ApiResp Receiver
     pub api_resp_watcher: watch::Receiver<ApiResp>,

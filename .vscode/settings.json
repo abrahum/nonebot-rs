@@ -1,7 +1,6 @@
 {
     "rust.features": [
-    
-    "lua"
+        "matcher"
     ],
     "rust.build_on_save": true
 }

@@ -20,7 +20,6 @@ pub mod set_get;
 pub type Rule<E> = Arc<dyn Fn(&E, &BotConfig) -> bool + Send + Sync>;
 /// permatcher 函数类型
 pub type PreMatcher<E> = fn(&mut E, BotConfig) -> bool;
-const PLUGIN_NAME: &'static str = "Matchers";
 
 /// 参与匹配的最小单元
 ///

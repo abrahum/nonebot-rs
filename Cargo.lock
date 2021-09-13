@@ -808,6 +808,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "nbrs_lua"
+version = "0.1.0"
+dependencies = [
+ "mlua",
+ "nonebot_rs",
+ "tokio",
+]
+
+[[package]]
 name = "nbrs_matcher_r6s"
 version = "0.1.0"
 dependencies = [
@@ -820,6 +829,7 @@ dependencies = [
 name = "nbrs_no4"
 version = "0.1.0"
 dependencies = [
+ "nbrs_lua",
  "nbrs_matcher_r6s",
  "nonebot_rs",
  "tokio",
@@ -855,8 +865,6 @@ dependencies = [
  "headers",
  "http",
  "lazy_static",
- "mlua",
- "pyo3",
  "rcnb-rs",
  "serde",
  "serde_json",

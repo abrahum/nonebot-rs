@@ -165,10 +165,6 @@ pub mod config;
 pub mod event;
 /// logger
 pub mod log;
-/// Lua 插件
-#[cfg(feature = "lua")]
-#[cfg_attr(docsrs, doc(cfg(feature = "lua")))]
-pub mod lua;
 /// Matcher 定义
 #[cfg(feature = "matcher")]
 #[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
@@ -176,10 +172,6 @@ pub mod matcher;
 #[doc(hidden)]
 pub mod message;
 mod plugin;
-#[doc(hidden)]
-#[cfg(feature = "pyo")]
-#[cfg_attr(docsrs, doc(cfg(feature = "pyo")))]
-pub mod pyo;
 mod utils;
 
 use std::collections::HashMap;

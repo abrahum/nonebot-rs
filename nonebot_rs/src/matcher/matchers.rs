@@ -12,6 +12,8 @@ pub type MatchersHashMap<E> = HashMap<String, Matcher<E>>;
 /// Matchers Action Sender
 pub type ActionSender = broadcast::Sender<super::action::MatchersAction>;
 
+const PLUGIN_NAME: &'static str = "Matchers";
+
 /// 根据 `Event` 类型分类存储对应的 `Matcher`
 #[derive(Clone, Debug)]
 pub struct Matchers {
@@ -252,5 +254,8 @@ impl crate::Plugin for Matchers {
         let mut m = self.clone();
         m.bot_getter = Some(bot_getter.clone());
         tokio::spawn(m.event_recv(event_receiver));
+    }
+    fn plugin_name(&self) -> &'static str {
+        PLUGIN_NAME
     }
 }

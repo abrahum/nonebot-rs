@@ -208,13 +208,15 @@ where
         //     .unwrap();
     }
 
-    /// 向指定 bot_id 添加 Matcher<MessageEvent>
+    /// 向 Matchers 添加 Matcher<MessageEvent>
     pub async fn set_message_matcher(&self, matcher: Matcher<MessageEvent>) {
         let action = action::MatchersAction::AddMessageEventMatcher {
             message_event_matcher: matcher,
         };
         if let Some(action_sender) = &self.action_sender {
             action_sender.send(action).unwrap();
+        } else {
+            tracing::event!(tracing::Level::WARN, "Action Sender not init.")
         }
     }
 }

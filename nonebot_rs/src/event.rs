@@ -29,6 +29,17 @@ pub enum Event {
     /// 元事件
     #[serde(rename = "meta_event")]
     Meta(MetaEvent),
+
+    /// Nonebot 内部事件
+    #[serde(skip)]
+    Nonebot(NbEvent),
+}
+
+/// Nonebot Event
+#[derive(Debug, Clone)]
+pub enum NbEvent {
+    BotConnect { bot: crate::Bot },
+    BotDisconnect { bot: crate::Bot },
 }
 
 /// 消息事件
@@ -375,6 +386,10 @@ impl SelfId for Event {
             Event::Request(e) => e.get_self_id(),
             Event::Notice(e) => e.get_self_id(),
             Event::Meta(e) => e.get_self_id(),
+            Event::Nonebot(e) => match e {
+                NbEvent::BotConnect { bot } => bot.bot_id.clone(),
+                NbEvent::BotDisconnect { bot } => bot.bot_id.clone(),
+            },
         }
     }
 }

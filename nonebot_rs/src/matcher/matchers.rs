@@ -1,6 +1,6 @@
 use crate::event::{Event, MessageEvent, MetaEvent, NoticeEvent, RequestEvent, SelfId};
-use crate::log::log_load_matchers;
 use crate::matcher::Matcher;
+use colored::*;
 use std::collections::{BTreeMap, HashMap};
 use tokio::sync::broadcast;
 use tracing::{event, Level};
@@ -86,7 +86,8 @@ impl Matchers {
     }
 
     /// 向 Matchers 添加 Matcher<MessageEvent>
-    pub fn add_message_matcher(&mut self, matcher: Matcher<MessageEvent>) -> &mut Self {
+    pub fn add_message_matcher(&mut self, mut matcher: Matcher<MessageEvent>) -> &mut Self {
+        matcher.set_action_sender(self.action_sender.clone());
         match self.message.get(&matcher.priority) {
             Some(_) => {
                 self.message
@@ -165,6 +166,10 @@ impl Matchers {
             Event::Meta(e) => {
                 self.handle_event(self.meta.clone(), e, bot.clone()).await;
             }
+            Event::Nonebot(e) => match e {
+                crate::event::NbEvent::BotConnect { bot } => self.run_on_connect(bot),
+                crate::event::NbEvent::BotDisconnect { bot: _ } => {}
+            },
         }
     }
 
@@ -181,7 +186,7 @@ impl Matchers {
         // 根据不同 Event 类型，逐级匹配，判定是否 Block
         for (_, matcherh) in matcherb.iter_mut() {
             if self
-                ._handler_event_(matcherh, event.clone(), bot.clone())
+                ._handler_event(matcherh, event.clone(), bot.clone())
                 .await
             {
                 break;
@@ -190,7 +195,7 @@ impl Matchers {
     }
 
     #[doc(hidden)]
-    async fn _handler_event_<E>(
+    async fn _handler_event<E>(
         &mut self,
         matcherh: &mut crate::MatchersHashMap<E>,
         e: E,
@@ -209,12 +214,13 @@ impl Matchers {
                 .match_(e.clone(), config.clone(), self)
                 .await;
             if matched {
-                event!(Level::INFO, "Matched {}", name);
+                event!(Level::INFO, "Matched {}", name.blue());
                 if matcher.is_block() {
                     get_block = true;
                 }
                 if matcher.is_temp() {
-                    self.remove_matcher(&matcher.name);
+                    event!(Level::INFO, "Remove matched temp matcher {}", name.blue());
+                    self.remove_matcher(name);
                 }
             }
         }
@@ -255,7 +261,29 @@ impl crate::Plugin for Matchers {
         m.bot_getter = Some(bot_getter.clone());
         tokio::spawn(m.event_recv(event_receiver));
     }
+
     fn plugin_name(&self) -> &'static str {
         PLUGIN_NAME
+    }
+}
+
+pub fn log_load_matchers(matchers: &crate::Matchers) {
+    log_matcherb(&matchers.message);
+    log_matcherb(&matchers.notice);
+    log_matcherb(&matchers.request);
+    log_matcherb(&matchers.meta);
+}
+
+fn log_matcherb<E>(matcherb: &crate::MatchersBTreeMap<E>)
+where
+    E: Clone,
+{
+    if matcherb.is_empty() {
+        return;
+    }
+    for (_, matcherh) in matcherb {
+        for (name, _) in matcherh {
+            event!(Level::INFO, "Matcher {} is Loaded", name.blue());
+        }
     }
 }

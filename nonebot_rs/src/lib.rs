@@ -271,10 +271,11 @@ impl Nonebot {
         bot
     }
 
-    pub fn remove_bot(&mut self, bot_id: String) {
+    pub fn remove_bot(&mut self, bot_id: String) -> Option<Bot> {
         let bot_id = bot_id.to_string();
-        self.bots.remove(&bot_id).expect("");
+        let bot = self.bots.remove(&bot_id);
         self.bot_sender.send(self.bots.clone()).unwrap();
+        bot
     }
 
     fn check_auth(_auth: Option<String>) -> bool {

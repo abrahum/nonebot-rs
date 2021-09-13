@@ -5,13 +5,21 @@ impl<E> Matcher<E>
 where
     E: Clone,
 {
-    /// 设置 Matcher 的 api_sender 与 api_resp_watcher
+    /// 设置 Matcher 的 bot
+    ///
+    /// 当前 Matcher 如果已经预设 Bot 将会忽视传入的 Bot
     pub fn build(&self, bot: crate::bot::Bot) -> Matcher<E> {
         let mut m = self.clone();
         if let None = &m.bot {
             m.bot = Some(bot);
         }
         m
+    }
+
+    /// 为 Matcher 添加向 Matchers 发送 Matchers Action 的 Sender
+    /// 会在向 Matchers 添加时调用
+    pub fn set_action_sender(&mut self, action_sender: super::matchers::ActionSender) {
+        self.action_sender = Some(action_sender);
     }
 
     /// 设置 priority

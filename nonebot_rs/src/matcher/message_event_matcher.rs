@@ -3,7 +3,7 @@ use crate::event::MessageEvent;
 use crate::ApiChannelItem;
 use async_trait::async_trait;
 use colored::*;
-use tracing::{event as tevent, Level};
+use tracing::{event, Level};
 
 impl Matcher<MessageEvent> {
     /// 发送纯文本消息
@@ -41,7 +41,9 @@ impl Matcher<MessageEvent> {
                 return Some(crate::utils::remove_space(raw_message));
             }
         }
-        struct Temp {}
+
+        /// 临时 Matcher 的 Handler struct
+        struct Temp;
 
         #[async_trait]
         impl Handler<MessageEvent> for Temp {
@@ -57,15 +59,19 @@ impl Matcher<MessageEvent> {
                     .unwrap();
             }
 
+            // timeout 后调用，通知接受端 Timeout
             fn timeout_drop(&self, matcher: &Matcher<MessageEvent>) {
                 let sender = matcher.bot.clone().unwrap().api_sender;
                 tokio::spawn(async move { sender.send(ApiChannelItem::TimeOut).await.unwrap() });
             }
         }
 
+        // 搭建临时通道接受 MessageEvent
         let (sender, mut receiver) = tokio::sync::mpsc::channel::<ApiChannelItem>(4);
         let event = self.event.clone().unwrap();
-        let mut m = build_temp_message_event_matcher(&event, Temp {});
+        // 根据提供的 event Handler 构建仅指向当先通话的 Temp Matcher
+        let mut m = build_temp_message_event_matcher(&event, Temp);
+        // 使用临时通道构建专用 Bot
         let bot = crate::bot::Bot::new(
             "Temp".to_string(),
             crate::config::BotConfig::default(),
@@ -73,12 +79,16 @@ impl Matcher<MessageEvent> {
             self.bot.clone().unwrap().action_sender.clone(),
             self.bot.clone().unwrap().api_resp_watcher.clone(),
         );
+        // 绑定专用 Bot
         m.bot = Some(bot);
         self.set_message_matcher(m).await;
 
+        // Temp Matcher 已就绪，发送提示信息
         if let Some(msg) = msg {
             self.send_text(msg).await;
         }
+
+        // 等待接收 MessageEvent
         while let Some(data) = receiver.recv().await {
             match data {
                 ApiChannelItem::MessageEvent(event) => {
@@ -89,13 +99,15 @@ impl Matcher<MessageEvent> {
                         return Some(msg);
                     }
                 }
-                ApiChannelItem::TimeOut => return None,
+                ApiChannelItem::TimeOut => {
+                    event!(Level::DEBUG, "Temp Matcher TimeOut");
+                    return None;
+                }
                 // 中转 temp Matcher 的 Remove Action
                 // ApiChannelItem::Action(action) => self.set(action).await,
                 _ => {
-                    use colored::*;
-                    tracing::event!(
-                        tracing::Level::WARN,
+                    event!(
+                        Level::WARN,
                         "{}",
                         "Temp Matcher接受端接收到错误Api或Action消息".bright_red()
                     );
@@ -108,29 +120,14 @@ impl Matcher<MessageEvent> {
 
     /// 发送 Vec<Message> 消息
     pub async fn send(&self, msg: Vec<crate::message::Message>) {
-        match self.event.clone().unwrap() {
-            MessageEvent::Private(p) => {
-                if let Some(bot) = &self.bot {
-                    bot.send_private_msg(&p.user_id, msg).await;
-                } else {
-                    tevent!(
-                        Level::ERROR,
-                        "{}",
-                        "Sending msg with unbuilt matcher!".red()
-                    );
-                }
-            }
-            MessageEvent::Group(g) => {
-                if let Some(bot) = &self.bot {
-                    bot.send_group_msg(&g.group_id, msg).await;
-                } else {
-                    tevent!(
-                        Level::ERROR,
-                        "{}",
-                        "Sending msg with unbuilt matcher!".red()
-                    );
-                }
-            }
+        if let (Some(bot), Some(event)) = (&self.bot, &self.event) {
+            bot.send_by_message_event(&event, msg).await;
+        } else {
+            event!(
+                Level::ERROR,
+                "{}",
+                "Sending msg with unbuilt matcher!".red()
+            );
         }
     }
 }

@@ -1,4 +1,5 @@
 use crate::ApiChannelItem;
+use colored::*;
 use tokio::sync::{mpsc, watch};
 use tracing::{event, Level};
 
@@ -35,20 +36,41 @@ impl crate::Nonebot {
                 api_resp_watcher,
             } => {
                 if crate::Nonebot::check_auth(auth) {
-                    self.add_bot(
+                    let bot = self.add_bot(
                         bot_id.clone(),
                         api_sender,
                         action_sender,
                         api_resp_watcher.clone(),
                     );
+                    self.event_sender
+                        .send(crate::event::Event::Nonebot(
+                            crate::event::NbEvent::BotConnect { bot },
+                        ))
+                        .unwrap();
                     event!(Level::DEBUG, "Add Bot [{}]", bot_id);
                 } else {
                     event!(Level::WARN, "Bot [{}] authorize failure", bot_id);
                 }
             }
             Action::RemoveBot { bot_id } => {
-                self.remove_bot(bot_id.clone());
-                event!(Level::DEBUG, "Remove Bot [{}]", bot_id);
+                let bot = self.remove_bot(bot_id.clone());
+                match bot {
+                    Some(bot) => {
+                        event!(Level::DEBUG, "Remove Bot [{}]", bot.bot_id.bright_red());
+                        self.event_sender
+                            .send(crate::event::Event::Nonebot(
+                                crate::event::NbEvent::BotDisconnect { bot },
+                            ))
+                            .unwrap();
+                    }
+                    None => {
+                        event!(
+                            Level::WARN,
+                            "Removing not exists Bot [{}]",
+                            bot_id.bright_red()
+                        );
+                    }
+                }
             }
             Action::ChangeBotConfig { bot_id, bot_config } => {
                 let bot = self.bots.get_mut(&bot_id).unwrap();

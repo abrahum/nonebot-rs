@@ -173,16 +173,11 @@ pub mod matcher;
 #[doc(hidden)]
 pub mod message;
 mod plugin;
+mod scheduler;
 mod utils;
 
 use std::collections::HashMap;
 use tokio::sync::{broadcast, mpsc, watch};
-#[cfg(feature = "scheduler")]
-#[cfg_attr(docsrs, doc(cfg(feature = "scheduler")))]
-pub use tokio_cron_scheduler::Job;
-#[cfg(feature = "scheduler")]
-#[cfg_attr(docsrs, doc(cfg(feature = "scheduler")))]
-use tokio_cron_scheduler::JobScheduler;
 
 #[doc(inline)]
 pub use action::Action;
@@ -192,13 +187,21 @@ pub use async_trait::async_trait;
 #[doc(inline)]
 pub use bot::Bot;
 #[doc(inline)]
-#[cfg(feature = "matcher")]
-#[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
-pub use matcher::matchers::{Matchers, MatchersBTreeMap, MatchersHashMap};
 #[doc(inline)]
 pub use message::Message;
 #[doc(inline)]
 pub use plugin::Plugin;
+
+#[cfg(feature = "scheduler")]
+#[cfg_attr(docsrs, doc(cfg(feature = "scheduler")))]
+pub use crate::scheduler::Scheduler;
+#[cfg(feature = "scheduler")]
+#[cfg_attr(docsrs, doc(cfg(feature = "scheduler")))]
+pub use tokio_cron_scheduler::Job;
+
+#[cfg(feature = "matcher")]
+#[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
+pub use matcher::matchers::Matchers;
 
 #[macro_use]
 extern crate lazy_static;
@@ -233,10 +236,6 @@ pub struct Nonebot {
     pub bot_getter: BotGettter,
     /// event handler
     plugins: HashMap<String, std::sync::Arc<dyn Plugin + Send + Sync>>,
-    // #[cfg(feature = "matcher")]
-    // pub matchers: Matchers,
-    #[cfg(feature = "scheduler")]
-    pub scheduler: JobScheduler,
 }
 
 /// api channel 传递项
@@ -298,10 +297,6 @@ impl Nonebot {
             bot_sender: bot_sender,
             bot_getter: bot_getter,
             plugins: HashMap::new(),
-            // #[cfg(feature = "matcher")]
-            // matchers: Matchers::new_empty(),
-            #[cfg(feature = "scheduler")]
-            scheduler: JobScheduler::new(),
         }
     }
 
@@ -355,8 +350,6 @@ impl Nonebot {
             self.event_sender.clone(),
             self.action_sender.clone(),
         ));
-        #[cfg(feature = "scheduler")]
-        tokio::spawn(self.scheduler.start());
         self.recv().await;
     }
 

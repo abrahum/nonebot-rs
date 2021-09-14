@@ -100,7 +100,7 @@ where
     /// ``` rust
     /// Matcher {
     ///     name: name,
-    ///     sender: None,
+    ///     bot: None,
     ///     priority: 1,
     ///     pre_matchers: vec![],
     ///     rules: vec![],

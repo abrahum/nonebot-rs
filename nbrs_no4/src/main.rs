@@ -23,6 +23,10 @@ fn main() {
     // });
     // nb.add_plugin("Lua", std::sync::Arc::new(lua));
 
+    let mut scheduler = nonebot_rs::Scheduler::new();
+    scheduler.add_job(clock::clock(&nb));
+    nb.add_plugin(scheduler);
+
     // nb.matchers
     //     .add_message_matcher(nonebot_rs::builtin::rcnb::rcnb())
     //     .add_message_matcher(nonebot_rs::builtin::echo::echo2())

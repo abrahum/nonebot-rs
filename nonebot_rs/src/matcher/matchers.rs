@@ -176,7 +176,7 @@ impl Matchers {
     /// 接收按类型分发后的 Event 逐级匹配 Matcher
     async fn handle_event<E>(
         &mut self,
-        mut matcherb: crate::MatchersBTreeMap<E>,
+        mut matcherb: MatchersBTreeMap<E>,
         event: E,
         bot: crate::bot::Bot,
     ) where
@@ -197,7 +197,7 @@ impl Matchers {
     #[doc(hidden)]
     async fn _handler_event<E>(
         &mut self,
-        matcherh: &mut crate::MatchersHashMap<E>,
+        matcherh: &mut MatchersHashMap<E>,
         e: E,
         bot: crate::bot::Bot,
     ) -> bool
@@ -274,7 +274,7 @@ pub fn log_load_matchers(matchers: &crate::Matchers) {
     log_matcherb(&matchers.meta);
 }
 
-fn log_matcherb<E>(matcherb: &crate::MatchersBTreeMap<E>)
+fn log_matcherb<E>(matcherb: &MatchersBTreeMap<E>)
 where
     E: Clone,
 {

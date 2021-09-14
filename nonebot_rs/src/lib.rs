@@ -206,15 +206,23 @@ pub use matcher::matchers::Matchers;
 #[macro_use]
 extern crate lazy_static;
 
-#[doc(hidden)]
+/// Onebot Api mpsc channel Bot 发送 WebSocket 接收
 pub type ApiSender = mpsc::Sender<ApiChannelItem>;
-#[doc(hidden)]
+/// Bot 监视 Onebot ApiResp Watch channel
 pub type ApiRespWatcher = watch::Receiver<ApiResp>;
+/// Event broadcast channel sender 所有 WebSocket Plugin 共享，
+/// WebSocket 发送，Plugin 接收
 pub type EventSender = broadcast::Sender<event::Event>;
+/// Event broadcast channel receiver 所有 WebSocket Plugin 共享，
+/// WebSocket 发送，Plugin 接收
 pub type EventReceiver = broadcast::Receiver<event::Event>;
+/// Nonebot Action Sender，Bot 发送，Nonebot 接收
 pub type ActionSender = mpsc::Sender<Action>;
+/// Nonebot Action Sender，Bot 发送，Nonebot 接收
 pub type ActionReceiver = mpsc::Receiver<Action>;
+/// 广播所有可用的 Bot
 pub type BotSender = watch::Sender<HashMap<String, Bot>>;
+/// 接收广播的所有可用 Bot
 pub type BotGettter = watch::Receiver<HashMap<String, Bot>>;
 /// nbrs 本体
 ///
@@ -245,7 +253,7 @@ pub enum ApiChannelItem {
     Api(api::Api),
     /// Event 用于临时 Matcher 与原 Matcher 传递事件 todo
     MessageEvent(event::MessageEvent),
-    /// Timeout
+    /// Time out 通知T
     TimeOut,
 }
 
@@ -316,7 +324,12 @@ impl Nonebot {
     pub fn pre_run(&mut self) {
         use colored::*;
         log::init(self.config.global.debug, self.config.global.trace);
-        tracing::event!(tracing::Level::DEBUG, "Loaded Config {:?}", self.config);
+        tracing::event!(tracing::Level::INFO, "Loaded Config {:?}", self.config);
+        tracing::event!(
+            tracing::Level::DEBUG,
+            "Full Config {:?}",
+            self.config.get_full_config()
+        );
         tracing::event!(
             tracing::Level::INFO,
             "{}",

@@ -1,3 +1,4 @@
+use config::Config;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -5,16 +6,23 @@ use std::collections::HashMap;
 pub static CONFIG_PATH: &str = "Nonebotrs.toml";
 
 /// nbrs 配置项结构体
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct NbConfig {
     /// 全局配置
     pub global: GlobalConfig,
     /// bot 配置
     pub bots: Option<HashMap<String, BotConfig>>,
-    /// Matcher 配置
-    pub matchers: Option<HashMap<String, serde_json::Value>>,
-    /// Schedule Job 配置
-    pub jobs: Option<HashMap<String, serde_json::Value>>,
+    #[serde(skip)]
+    config: Config,
+}
+
+impl std::fmt::Debug for NbConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("NbConfig")
+            .field("Global", &self.global)
+            .field("Bots", &self.bots)
+            .finish()
+    }
 }
 
 /// nbrs 全局配置
@@ -74,8 +82,7 @@ impl Default for NbConfig {
                 command_starts: vec!["/".to_string()],
             },
             bots: None,
-            matchers: None,
-            jobs: None,
+            config: Config::default(),
         }
     }
 }
@@ -84,7 +91,7 @@ impl NbConfig {
     /// 从配置文件读取配置
     pub fn load() -> Self {
         use colored::*;
-        let config: NbConfig;
+        let mut config: NbConfig;
         let config_pathbuf = std::path::PathBuf::from(&CONFIG_PATH);
         if !config_pathbuf.exists() {
             config = NbConfig::default();
@@ -92,35 +99,28 @@ impl NbConfig {
             std::fs::write(&config_pathbuf, &config_string).unwrap();
             println!("{}", "未发现配置文件，已新建配置文件。".green())
         } else {
-            let config_string = std::fs::read_to_string(&config_pathbuf).unwrap();
-            match toml::from_str(&config_string) {
-                Ok(config_data) => {
-                    config = config_data;
-                    println!("{}", "载入配置成功！".bright_green());
-                }
-                Err(e) => {
-                    println!("{} -> {}", "载入配置失败！".bright_red(), e);
-                    std::process::exit(101);
-                }
-            };
+            let mut _config = Config::default();
+            _config.merge(config::File::with_name(CONFIG_PATH)).unwrap();
+            config = _config.clone().try_into().unwrap();
+            config.config = _config;
         }
         config
     }
 
-    pub fn get_matcher_config(&self, matcher_name: &str) -> Option<&serde_json::Value> {
-        if let Some(matchers_config) = &self.matchers {
-            matchers_config.get(matcher_name)
-        } else {
-            None
+    pub fn get_config<'de, T>(&self, key_word: &str) -> Option<T>
+    where
+        T: serde::Deserialize<'de>,
+    {
+        let _config = self.config.clone();
+        let get_config: Result<T, config::ConfigError> = _config.get(key_word);
+        match get_config {
+            Ok(t) => Some(t),
+            Err(_) => None,
         }
     }
 
-    pub fn get_job_config(&self, job_name: &str) -> Option<&serde_json::Value> {
-        if let Some(job_config) = &self.jobs {
-            job_config.get(job_name)
-        } else {
-            None
-        }
+    pub fn get_full_config(&self) -> Config {
+        self.config.clone()
     }
 
     /// 生成 BotConfig

@@ -9,10 +9,7 @@ fn main() {
     let mut matchers = nonebot_rs::Matchers::new_empty();
     matchers
         .add_message_matcher(nonebot_rs::builtin::rcnb::rcnb())
-        .add_message_matcher(nonebot_rs::builtin::echo::echo2())
-        .add_message_matcher(nonebot_rs::builtin::bot_status::bot_status(
-            config.get_matcher_config("bot_status"),
-        ));
+        .add_message_matcher(nonebot_rs::builtin::echo::echo2());
     nb.add_plugin(matchers);
 
     // let lua_config = nb.config.lua.clone();

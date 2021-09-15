@@ -83,11 +83,13 @@ debug = true
 superusers = ["YourID"]
 nicknames = ["nickname"]
 command_starts = ["/"]
+access_token = "AccessToken"
 
 [bots.BotID]
 superusers = ["YourID"]
 nicknames = ["nickname"]
 command_starts = ["/"]
+access_token = "AccessToken"
 ```
 
 global 设置对每个未指定 bot 都有效，~~当在 global 外特别设置一个 bot 后，所有 global 设置对该 bot 全部失效~~ 可以仅指定部分属性。

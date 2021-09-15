@@ -24,7 +24,7 @@ pub async fn run(
          x_client_role: Option<TypedHeader<xheaders::XClientRole>>,
          user_agent: Option<TypedHeader<headers::UserAgent>>,
          authorization: Option<TypedHeader<xheaders::Authorization>>| async move {
-            event!(Level::INFO, "A client is connected.");
+            event!(Level::INFO, "A client is connectted.");
             if let (
                 Some(TypedHeader(user_agent)),
                 Some(TypedHeader(x_self_id)),
@@ -42,7 +42,7 @@ pub async fn run(
 
                 event!(
                     Level::INFO,
-                    "{} Client {} is connected. The client type is {}",
+                    "{} Client {} is connectted. The client type is {}",
                     user_agent.to_string().bright_yellow(),
                     x_self_id.0.red(),
                     x_client_role.0.bright_cyan()
@@ -81,7 +81,7 @@ pub async fn run(
             }
         };
     let app = route("/ws", ws(handle_socket));
-    event!(Level::INFO, "Serving at -> ws://{}:{}/ws", host, port);
+    event!(Level::INFO, "Serveing at -> ws://{}:{}/ws", host, port);
     axum::Server::bind(&std::net::SocketAddr::from((host, port)))
         .serve(app.into_make_service())
         .await
@@ -112,7 +112,7 @@ async fn stream_recv(
                 Err(e) => {
                     tracing::event!(
                         tracing::Level::ERROR,
-                        "Serialize Msg failed! Msg:{:?}\nError:{}",
+                        "Serialize msg failed! Msg:{:?}\nError:{}",
                         msg.to_str().unwrap(),
                         e
                     );
@@ -122,9 +122,8 @@ async fn stream_recv(
         } else {
             tracing::event!(
                 tracing::Level::WARN,
-                "Bot [{}] {}",
-                bot_id.to_string().red(),
-                "disconnect."
+                "Bot [{}] disconnect",
+                bot_id.to_string().red()
             );
             action_sender
                 .send(crate::Action::RemoveBot { bot_id: bot_id })

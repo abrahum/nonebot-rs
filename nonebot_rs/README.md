@@ -20,19 +20,25 @@ nbrs 启动后，将读取设置文件、并注册 Matchers（其实这一步已
 当第一次运行 nbrs 时将会自动创建 Nonebotrs.toml 配置文件。
 
 ```toml
-[global]                 # 全局设置
-host = "127.0.0.1"       # 监听 host
-port = 8088              # 监听 port
-debug = true             # 开启 debug log
-superusers = ["YourID"]  # 全局管理员账号
-nicknames = ["nickname"] # 全局 Bot 昵称
-command_starts = ["/"]   # 全局命令起始符
+[global]                     # 全局设置
+host = "127.0.0.1"           # 监听 host
+port = 8088                  # 监听 port
+debug = true                 # 开启 debug log
+superusers = ["YourID"]      # 全局管理员账号
+nicknames = ["nickname"]     # 全局 Bot 昵称
+command_starts = ["/"]       # 全局命令起始符
+access_token = "AccessToken" # 连接鉴权使用
 
-[bots.BotID]             # Bot 设置
-superusers = ["YourID"]  # 管理员账户
-nicknames = ["nickname"] # Bot 昵称
-command_starts = ["/"]   # 命令起始符
+[bots.BotID]                 # Bot 设置
+superusers = ["YourID"]      # 管理员账户
+nicknames = ["nickname"]     # Bot 昵称
+command_starts = ["/"]       # 命令起始符
+access_token = "AccessToken" # 连接鉴权使用
 ```
+
+## Plugin
+
+> To-do
 
 ## Matcher
 
@@ -43,9 +49,13 @@ command_starts = ["/"]   # 命令起始符
 ```rust
 fn main() {
     let mut nb = nonebot_rs::Nonebot::new(); // 新建 Nonebot
-    nb.matchers
+
+    let mut matchers = nonebot_rs::Matchers::new_empty(); // 新建空 Matchers Plugin
+    matchers
         .add_message_matcher(nonebot_rs::builtin::echo::echo())  // 注册 echo Matcher
         .add_message_matcher(nonebot_rs::builtin::rcnb::rcnb()); // 注册 rcnb Matcher
+    nb.add_plugin(scheduler); // 添加 Plugin
+
     nb.run()                                                     // 运行 Nonebot
 }
 ```
@@ -137,7 +147,11 @@ use nonebot_rs;
 
 fn main() {
     let mut nb = nonebot_rs::Nonebot::new();
-    nb.scheduler.add(clock(&nb)).unwrap();
+
+    let mut scheduler = nonebot_rs::Scheduler::new();
+    scheduler.add_job(clock::clock(&nb));
+    nb.add_plugin(scheduler);
+
     nb.run()
 }
 ```

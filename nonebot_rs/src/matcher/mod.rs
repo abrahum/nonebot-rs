@@ -199,13 +199,6 @@ where
         if let Some(bot) = &self.bot {
             bot.action_sender.send(set).await.unwrap();
         }
-        // self.bot
-        //     .clone()
-        //     .unwrap()
-        //     .api_sender
-        //     .send(crate::ApiChannelItem::Action(set))
-        //     .await
-        //     .unwrap();
     }
 
     /// 向 Matchers 添加 Matcher<MessageEvent>

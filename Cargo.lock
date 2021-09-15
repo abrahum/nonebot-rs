@@ -854,6 +854,7 @@ version = "0.1.0"
 dependencies = [
  "mlua",
  "nonebot_rs",
+ "serde 1.0.129",
  "tokio",
 ]
 

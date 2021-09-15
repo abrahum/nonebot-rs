@@ -29,6 +29,8 @@ pub struct Matchers {
     bot_getter: Option<crate::BotGettter>,
     /// Matchers Action Sender
     action_sender: ActionSender,
+    /// Config
+    config: HashMap<String, HashMap<String, String>>,
 }
 
 impl Matchers {
@@ -47,6 +49,7 @@ impl Matchers {
             meta: unoptionb(&meta),
             bot_getter: None,
             action_sender: sender,
+            config: HashMap::new(),
         }
     }
 
@@ -264,6 +267,13 @@ impl crate::Plugin for Matchers {
 
     fn plugin_name(&self) -> &'static str {
         PLUGIN_NAME
+    }
+
+    fn load_config(&mut self, config: toml::Value) {
+        let config: HashMap<String, HashMap<String, String>> =
+            config.try_into().expect("Matchers get error config");
+        self.config = config;
+        event!(Level::INFO, "Loaded Matchers config: {:?}", self.config);
     }
 }
 

@@ -4,19 +4,28 @@ use nonebot_rs::event::SelfId;
 use nonebot_rs::event::{Event, MessageEvent};
 use nonebot_rs::log::{colored::*, event, Level};
 use nonebot_rs::message::Message;
+use nonebot_rs::plugin::prelude::*;
+use serde::Deserialize;
 use std::collections::HashMap;
 
-#[derive(Debug, Clone)]
+/// Lua Plugin struct
+#[derive(Debug, Clone, Deserialize)]
 pub struct LuaPlugin {
+    #[serde(skip)]
     bot_getter: Option<nonebot_rs::BotGettter>,
+    #[serde(default)]
+    #[serde(flatten)]
     scripts: HashMap<String, String>,
+    #[serde(default)]
+    config: HashMap<String, String>,
 }
 
 impl LuaPlugin {
-    pub fn new(scripts: HashMap<String, String>) -> Self {
+    pub fn new() -> Self {
         LuaPlugin {
             bot_getter: None,
-            scripts: scripts,
+            scripts: HashMap::new(),
+            config: HashMap::new(),
         }
     }
 
@@ -90,5 +99,13 @@ impl nonebot_rs::Plugin for LuaPlugin {
 
     fn plugin_name(&self) -> &'static str {
         "Lua"
+    }
+
+    fn load_config(&mut self, config: toml::Value) {
+        let luap: LuaPlugin = config.try_into().expect("Lua get error config");
+        self.scripts = luap.scripts;
+        event!(Level::INFO, "Loaded lua scripts: {:?}", self.scripts);
+        self.config = luap.config;
+        event!(Level::INFO, "Loaded lua config: {:?}", self.config);
     }
 }

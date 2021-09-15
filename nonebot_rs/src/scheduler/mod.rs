@@ -27,17 +27,18 @@ pub struct SchedulerConfig {
     jobs: HashMap<String, JobConfig>,
 }
 
+/// Config for each Job
 #[derive(Debug, Deserialize)]
 pub struct JobConfig {
-    #[serde(default)]
-    disable: bool,
     #[serde(flatten)]
     custom: HashMap<String, String>,
 }
 
 impl crate::Plugin for Scheduler {
     fn run(&self, _: crate::EventReceiver, _: crate::BotGettter) {
-        tokio::spawn(self.scheduler.start());
+        if !self.config.disable {
+            tokio::spawn(self.scheduler.start());
+        }
     }
 
     fn plugin_name(&self) -> &'static str {

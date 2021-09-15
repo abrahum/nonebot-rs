@@ -1,4 +1,4 @@
-use crate::log::{event, Level};
+use crate::log::{colored::*, event, Level};
 use config::Config;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -43,6 +43,9 @@ pub struct GlobalConfig {
     pub nicknames: Vec<String>,
     /// 全局命令起始符设置
     pub command_starts: Vec<String>,
+    #[serde(alias = "access-token")]
+    #[serde(default)]
+    access_token: String, // Onebot authorization
 }
 
 /// nbrs bot 配置
@@ -52,11 +55,17 @@ pub struct BotConfig {
     #[serde(skip)]
     pub bot_id: String,
     /// 管理员账号设置
+    #[serde(default)]
     pub superusers: Vec<String>,
     /// 昵称设置
+    #[serde(default)]
     pub nicknames: Vec<String>,
     /// 命令起始符设置
+    #[serde(default)]
     pub command_starts: Vec<String>,
+    #[serde(alias = "access-token")]
+    #[serde(default)]
+    access_token: String, // Onebot authorization
 }
 
 impl Default for BotConfig {
@@ -66,6 +75,7 @@ impl Default for BotConfig {
             superusers: vec![],
             nicknames: vec![],
             command_starts: vec![],
+            access_token: String::default(),
         }
     }
 }
@@ -81,6 +91,7 @@ impl Default for NbConfig {
                 superusers: vec![],
                 nicknames: vec![],
                 command_starts: vec!["/".to_string()],
+                access_token: String::default(),
             },
             bots: None,
             config: Config::default(),
@@ -139,6 +150,7 @@ impl NbConfig {
             superusers: self.global.superusers.clone(),
             nicknames: self.global.nicknames.clone(),
             command_starts: self.global.command_starts.clone(),
+            access_token: self.global.access_token.clone(),
         };
         if let Some(bots_config) = &self.bots {
             if let Some(bot_config) = bots_config.get(bot_id) {
@@ -151,8 +163,73 @@ impl NbConfig {
                 if !bot_config.command_starts.is_empty() {
                     rbotconfig.command_starts = bot_config.command_starts.clone();
                 }
+                if !bot_config.access_token.is_empty() {
+                    rbotconfig.access_token = bot_config.access_token.clone();
+                }
             }
         }
         rbotconfig
+    }
+
+    pub fn gen_access_token(&self) -> AccessToken {
+        let mut at = AccessToken {
+            global: self.global.access_token.clone(),
+            bots: HashMap::default(),
+        };
+        if let Some(bots) = &self.bots {
+            for (bot_id, bot) in bots {
+                if !bot.access_token.is_empty() {
+                    at.bots
+                        .insert(bot_id.to_string(), bot.access_token.to_string());
+                }
+            }
+        }
+        at
+    }
+}
+
+#[derive(Clone)]
+pub struct AccessToken {
+    pub global: String,
+    pub bots: HashMap<String, String>,
+}
+
+impl AccessToken {
+    pub fn check_auth(&self, bot_id: &str, token: Option<String>) -> bool {
+        let access_token = if let Some(a) = self.bots.get(bot_id) {
+            &a
+        } else {
+            &self.global
+        };
+
+        if access_token.is_empty() {
+            return true;
+        }
+
+        fn check(head: &str, token: &str, access_token: &str) -> bool {
+            if token.starts_with(head) {
+                let token = crate::utils::remove_space(&token.replace(head, ""));
+                if token == access_token {
+                    return true;
+                }
+            }
+            false
+        }
+
+        let mut result = false;
+        if let Some(token) = &token {
+            result = check("Token", token, access_token) || check("Bearer", &token, access_token)
+        }
+
+        if !result {
+            event!(
+                Level::WARN,
+                "Access Token match fail Bot:[{}] Token:{:?}",
+                bot_id.red(),
+                token
+            );
+        }
+
+        result
     }
 }

@@ -16,6 +16,7 @@ pub async fn run(
     port: u16,
     event_sender: EventSender,
     action_sender: ActionSender,
+    access_token: crate::config::AccessToken,
 ) {
     let handle_socket =
         |socket: WebSocket,
@@ -38,21 +39,7 @@ pub async fn run(
                         data: crate::api_resp::RespData::None,
                         echo: "".to_string(),
                     });
-                let auth = if let Some(TypedHeader(auth)) = authorization {
-                    Some(auth.0)
-                } else {
-                    None
-                };
-                action_sender
-                    .send(crate::Action::AddBot {
-                        bot_id: x_self_id.0.clone(),
-                        api_sender: sender,
-                        action_sender: action_sender.clone(),
-                        auth: auth,
-                        api_resp_watcher: api_resp_watcher,
-                    })
-                    .await
-                    .unwrap();
+
                 event!(
                     Level::INFO,
                     "{} Client {} is connectted. The client type is {}",
@@ -60,15 +47,34 @@ pub async fn run(
                     x_self_id.0.red(),
                     x_client_role.0.bright_cyan()
                 );
-                handle_socket(
-                    socket,
-                    receiver,
-                    event_sender,
-                    action_sender,
-                    apiresp_watch_sender,
-                    x_self_id.0,
-                )
-                .await;
+
+                let auth = if let Some(TypedHeader(auth)) = authorization {
+                    Some(auth.0)
+                } else {
+                    None
+                };
+                if access_token.check_auth(&x_self_id.0, auth) {
+                    action_sender
+                        .send(crate::Action::AddBot {
+                            bot_id: x_self_id.0.clone(),
+                            api_sender: sender,
+                            action_sender: action_sender.clone(),
+                            api_resp_watcher: api_resp_watcher,
+                        })
+                        .await
+                        .unwrap();
+                    handle_socket(
+                        socket,
+                        receiver,
+                        event_sender,
+                        action_sender,
+                        apiresp_watch_sender,
+                        x_self_id.0,
+                    )
+                    .await;
+                } else {
+                    socket.close().await.unwrap()
+                }
             } else {
                 event!(Level::WARN, "Client headers wrong.");
                 socket.close().await.unwrap();

@@ -11,7 +11,6 @@ pub enum Action {
         bot_id: String,
         api_sender: mpsc::Sender<ApiChannelItem>,
         action_sender: crate::ActionSender,
-        auth: Option<String>,
         api_resp_watcher: watch::Receiver<crate::api_resp::ApiResp>,
     },
     /// 移除 Bot
@@ -32,25 +31,20 @@ impl crate::Nonebot {
                 bot_id,
                 api_sender,
                 action_sender,
-                auth,
                 api_resp_watcher,
             } => {
-                if crate::Nonebot::check_auth(auth) {
-                    let bot = self.add_bot(
-                        bot_id.clone(),
-                        api_sender,
-                        action_sender,
-                        api_resp_watcher.clone(),
-                    );
-                    self.event_sender
-                        .send(crate::event::Event::Nonebot(
-                            crate::event::NbEvent::BotConnect { bot },
-                        ))
-                        .unwrap();
-                    event!(Level::DEBUG, "Add Bot [{}]", bot_id);
-                } else {
-                    event!(Level::WARN, "Bot [{}] authorize failure", bot_id);
-                }
+                let bot = self.add_bot(
+                    bot_id.clone(),
+                    api_sender,
+                    action_sender,
+                    api_resp_watcher.clone(),
+                );
+                self.event_sender
+                    .send(crate::event::Event::Nonebot(
+                        crate::event::NbEvent::BotConnect { bot },
+                    ))
+                    .unwrap();
+                event!(Level::DEBUG, "Add Bot [{}]", bot_id);
             }
             Action::RemoveBot { bot_id } => {
                 let bot = self.remove_bot(bot_id.clone());

@@ -172,7 +172,8 @@ mod logger;
 pub mod matcher;
 #[doc(hidden)]
 pub mod message;
-mod plugin;
+#[doc(hidden)]
+pub mod plugin;
 mod scheduler;
 mod utils;
 
@@ -278,16 +279,12 @@ impl Nonebot {
         bot
     }
 
+    /// 移除 Bot，移除成功则返回移除的 Bot
     pub fn remove_bot(&mut self, bot_id: String) -> Option<Bot> {
         let bot_id = bot_id.to_string();
         let bot = self.bots.remove(&bot_id);
         self.bot_sender.send(self.bots.clone()).unwrap();
         bot
-    }
-
-    fn check_auth(_auth: Option<String>) -> bool {
-        // todo
-        true
     }
 
     /// 新建一个 Matchers 为空的 Nonebot 结构体
@@ -363,11 +360,13 @@ impl Nonebot {
     #[tokio::main]
     pub async fn run(mut self) {
         self.pre_run();
+        let access_tokens = self.config.gen_access_token();
         tokio::spawn(axum_driver::run(
             self.config.global.host,
             self.config.global.port,
             self.event_sender.clone(),
             self.action_sender.clone(),
+            access_tokens,
         ));
         self.recv().await;
     }
@@ -375,11 +374,14 @@ impl Nonebot {
     #[doc(hidden)]
     pub async fn async_run(mut self) {
         self.pre_run();
+        
+        let access_tokens = self.config.gen_access_token();
         tokio::spawn(axum_driver::run(
             self.config.global.host,
             self.config.global.port,
             self.event_sender.clone(),
             self.action_sender.clone(),
+            access_tokens,
         ));
         self.recv().await;
     }

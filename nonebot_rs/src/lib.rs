@@ -243,7 +243,7 @@ pub struct Nonebot {
     /// Bot Getter
     pub bot_getter: BotGettter,
     /// event handler
-    plugins: HashMap<String, std::sync::Arc<dyn Plugin + Send + Sync>>,
+    plugins: HashMap<String, Box<dyn Plugin + Send + Sync>>,
 }
 
 /// api channel 传递项
@@ -308,14 +308,15 @@ impl Nonebot {
         }
     }
 
+    /// 添加 Plugin
     pub fn add_plugin<P>(&mut self, p: P)
     where
         P: Plugin + Send + Sync + 'static,
     {
-        self.plugins
-            .insert(p.plugin_name().to_owned(), std::sync::Arc::new(p));
+        self.plugins.insert(p.plugin_name().to_owned(), Box::new(p));
     }
 
+    /// 移除 Plugin
     pub fn remove_plugin(&mut self, plugin_name: &str) {
         self.plugins.remove(plugin_name);
     }
@@ -336,7 +337,12 @@ impl Nonebot {
             "高性能自律実験4号機が稼働中····".red()
         );
         self.add_plugin(logger::Logger);
-        for (plugin_name, plugin) in &self.plugins {
+        for (plugin_name, plugin) in &mut self.plugins {
+            let plugin_config: Option<toml::Value> =
+                self.config.get_config(&plugin.plugin_name().to_lowercase());
+            if let Some(plugin_config) = plugin_config {
+                plugin.load_config(plugin_config);
+            }
             plugin.run(self.event_sender.subscribe(), self.bot_getter.clone());
             tracing::event!(
                 tracing::Level::INFO,

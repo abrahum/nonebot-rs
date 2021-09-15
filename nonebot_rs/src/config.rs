@@ -1,3 +1,4 @@
+use crate::log::{event, Level};
 use config::Config;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -13,7 +14,7 @@ pub struct NbConfig {
     /// bot 配置
     pub bots: Option<HashMap<String, BotConfig>>,
     #[serde(skip)]
-    config: Config,
+    config: Config, // save the full config
 }
 
 impl std::fmt::Debug for NbConfig {
@@ -107,6 +108,7 @@ impl NbConfig {
         config
     }
 
+    /// 根据 key_word 获取 config
     pub fn get_config<'de, T>(&self, key_word: &str) -> Option<T>
     where
         T: serde::Deserialize<'de>,
@@ -114,11 +116,18 @@ impl NbConfig {
         let _config = self.config.clone();
         let get_config: Result<T, config::ConfigError> = _config.get(key_word);
         match get_config {
-            Ok(t) => Some(t),
-            Err(_) => None,
+            Ok(t) => {
+                event!(Level::DEBUG, "Found config for {}", key_word);
+                Some(t)
+            }
+            Err(_) => {
+                event!(Level::DEBUG, "Not found config for {}", key_word);
+                None
+            }
         }
     }
 
+    /// 获取 full config
     pub fn get_full_config(&self) -> Config {
         self.config.clone()
     }

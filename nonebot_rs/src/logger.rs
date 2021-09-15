@@ -2,6 +2,7 @@ use crate::event::{Event, MessageEvent, MetaEvent};
 use colored::*;
 use tracing::{event, Level};
 
+/// Message Event Logger
 pub fn message_logger(event: &MessageEvent) {
     match &event {
         MessageEvent::Private(p) => {
@@ -37,6 +38,7 @@ pub fn message_logger(event: &MessageEvent) {
     }
 }
 
+/// Meta Event Logger
 pub fn meta_logger(event: &MetaEvent) {
     if &event.meta_event_type == "heartbeat" {
         event!(Level::TRACE, "Recive HeartBeat")

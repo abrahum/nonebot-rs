@@ -5,7 +5,7 @@ mod clock;
 
 fn main() {
     let mut nb = nonebot_rs::Nonebot::new();
-    let config = nb.config.clone();
+    // let config = nb.config.clone();
     let mut matchers = nonebot_rs::Matchers::new_empty();
     matchers
         .add_message_matcher(nonebot_rs::builtin::rcnb::rcnb())

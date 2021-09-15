@@ -5,4 +5,7 @@ pub trait Plugin: std::fmt::Debug {
     fn run(&self, event_receiver: crate::EventReceiver, bot_getter: crate::BotGettter);
     /// Plugin Name 用于注册 Plugin 时标识唯一性
     fn plugin_name(&self) -> &'static str;
+    /// Load config
+    #[allow(unused_variables)]
+    fn load_config(&mut self, config: toml::Value) {}
 }

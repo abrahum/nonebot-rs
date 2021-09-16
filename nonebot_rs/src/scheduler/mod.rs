@@ -4,6 +4,12 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use tokio_cron_scheduler::{Job, JobScheduler};
 
+/// Prelude for Scheduler Plugin
+pub mod prelude {
+    pub use crate::message::Message;
+    pub use tokio_cron_scheduler::Job;
+}
+
 /// Scheduler Plugin struct
 pub struct Scheduler {
     scheduler: JobScheduler,

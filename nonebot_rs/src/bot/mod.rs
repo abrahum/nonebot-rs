@@ -7,7 +7,7 @@ use tracing::{event, Level};
 
 mod _api;
 
-/// Bot
+/// 为 Plugin 提供各类 Onebot Api 
 #[derive(Debug, Clone)]
 pub struct Bot {
     /// bot id

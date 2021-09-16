@@ -51,15 +51,15 @@
 //!
 //! ```rust
 //! fn main() {
-//! let mut nb = nonebot_rs::Nonebot::new(); // 新建 Nonebot
+//!     let mut nb = nonebot_rs::Nonebot::new(); // 新建 Nonebot
 //!
-//! let mut matchers = nonebot_rs::Matchers::new_empty(); // 新建空 Matchers Plugin
-//! matchers
-//!     .add_message_matcher(nonebot_rs::builtin::echo::echo())  // 注册 echo Matcher
-//!     .add_message_matcher(nonebot_rs::builtin::rcnb::rcnb()); // 注册 rcnb Matcher
-//! nb.add_plugin(scheduler); // 添加 Plugin
+//!     let mut matchers = nonebot_rs::Matchers::new_empty();        // 新建空 Matchers Plugin
+//!     matchers
+//!         .add_message_matcher(nonebot_rs::builtin::echo::echo())  // 注册 echo Matcher
+//!         .add_message_matcher(nonebot_rs::builtin::rcnb::rcnb()); // 注册 rcnb Matcher
+//!     nb.add_plugin(scheduler);                                    // 添加 Plugin
 //!
-//! nb.run()                                                     // 运行 Nonebot
+//!     nb.run()                                                     // 运行 Nonebot
 //! }
 //! ```
 //!
@@ -180,7 +180,7 @@ pub mod event;
 /// logger
 pub mod log;
 mod logger;
-/// Matcher 定义
+/// Matchers Plugin
 #[cfg(feature = "matcher")]
 #[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
 pub mod matcher;
@@ -188,7 +188,10 @@ pub mod matcher;
 pub mod message;
 #[doc(hidden)]
 pub mod plugin;
-mod scheduler;
+/// scheduler Plugin
+#[cfg(feature = "scheduler")]
+#[cfg_attr(docsrs, doc(cfg(feature = "scheduler")))]
+pub mod scheduler;
 mod utils;
 
 use std::collections::HashMap;
@@ -209,10 +212,7 @@ pub use plugin::Plugin;
 
 #[cfg(feature = "scheduler")]
 #[cfg_attr(docsrs, doc(cfg(feature = "scheduler")))]
-pub use crate::scheduler::Scheduler;
-#[cfg(feature = "scheduler")]
-#[cfg_attr(docsrs, doc(cfg(feature = "scheduler")))]
-pub use tokio_cron_scheduler::Job;
+pub use scheduler::Scheduler;
 
 #[cfg(feature = "matcher")]
 #[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]

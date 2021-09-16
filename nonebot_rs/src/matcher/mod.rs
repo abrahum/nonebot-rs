@@ -3,6 +3,7 @@ use crate::event::{MessageEvent, SelfId};
 use crate::utils::timestamp;
 use crate::Action;
 use async_trait::async_trait;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 mod action;
@@ -12,6 +13,7 @@ pub mod api;
 pub mod matchers;
 #[doc(hidden)]
 pub mod message_event_matcher;
+/// Preludo for Matcher
 pub mod prelude;
 #[doc(hidden)]
 pub mod set_get;
@@ -21,7 +23,7 @@ pub type Rule<E> = Arc<dyn Fn(&E, &BotConfig) -> bool + Send + Sync>;
 /// permatcher 函数类型
 pub type PreMatcher<E> = fn(&mut E, BotConfig) -> bool;
 
-/// 参与匹配的最小单元
+/// 单个匹配器，参与匹配的最小单元
 ///
 /// Matcher 匹配器，每个匹配器对应一个 handle 函数
 #[derive(Clone)]
@@ -88,6 +90,15 @@ where
     fn match_(&self, event: &mut E) -> bool;
     /// 处理函数
     async fn handle(&self, event: E, matcher: Matcher<E>);
+    /// Load config
+    ///
+    /// 请注意该载入函数在 tracing log 初始化之前运行，在该函数内不应该使用
+    /// tracing（也无法使用）
+    ///
+    /// 请避免使用与 matcher 固有的同名属性（例如，priority、block、disable、
+    /// temp）这些属性将被直接载入到 Matcher（你想用我也拦不住你）
+    #[allow(unused_variables)]
+    fn load_config(&mut self, config: HashMap<String, toml::Value>) {}
 }
 
 impl<E> Matcher<E>
@@ -132,6 +143,21 @@ where
 
             event: None,
         }
+    }
+
+    /// Handler 载入 nb 提供的 config 创建 Matcher
+    pub fn new_with_config<H>(name: &str, mut handler: H, nb: &crate::Nonebot) -> Matcher<E>
+    where
+        H: Handler<E> + Sync + Send + 'static,
+    {
+        let matchers_config: Option<HashMap<String, HashMap<String, toml::Value>>> =
+            nb.config.get_config(&matchers::PLUGIN_NAME.to_lowercase());
+        if let Some(config) = &matchers_config {
+            if let Some(config) = config.get(&name.to_lowercase()) {
+                handler.load_config(config.clone());
+            }
+        }
+        Matcher::new(name, handler)
     }
 
     #[doc(hidden)]

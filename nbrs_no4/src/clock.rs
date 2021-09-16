@@ -1,4 +1,4 @@
-use nonebot_rs::{Job, Message};
+use nonebot_rs::scheduler::prelude::*;
 
 #[allow(dead_code)]
 pub fn clock(nb: &nonebot_rs::Nonebot) -> Job {

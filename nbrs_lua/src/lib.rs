@@ -1,9 +1,6 @@
 // minimal
 use mlua::prelude::*;
-use nonebot_rs::event::SelfId;
-use nonebot_rs::event::{Event, MessageEvent};
 use nonebot_rs::log::{colored::*, event, Level};
-use nonebot_rs::message::Message;
 use nonebot_rs::plugin::prelude::*;
 use serde::Deserialize;
 use std::collections::HashMap;

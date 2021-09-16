@@ -25,7 +25,9 @@ pub fn echo() -> Matcher<MessageEvent> {
 
 #[doc(hidden)]
 #[derive(Clone)]
-pub struct Echo2 {}
+pub struct Echo2 {
+    max_times: i64, // negative for infinite (all most)
+}
 
 #[doc(hidden)]
 #[async_trait]
@@ -33,6 +35,7 @@ impl Handler<MessageEvent> for Echo2 {
     on_command!(MessageEvent, "echo mode", "Echo Mode");
     async fn handle(&self, _: MessageEvent, matcher: Matcher<MessageEvent>) {
         // echo whatever you say until exit
+        let mut max_times = self.max_times;
         matcher
             .send_text("Enter Echo Mode\nType :q! to exit.")
             .await;
@@ -43,14 +46,26 @@ impl Handler<MessageEvent> for Echo2 {
                 break;
             } else {
                 matcher.send_text(&msg).await;
+                max_times -= 1;
             }
+
+            if max_times == 0 {
+                matcher.send_text("Quit echo mode").await;
+                break;
+            }
+        }
+    }
+
+    fn load_config(&mut self, config: std::collections::HashMap<String, toml::Value>) {
+        if let Some(data) = config.get("max_times") {
+            self.max_times = data.clone().try_into().expect("max_times 不是正整数");
         }
     }
 }
 
 /// 无限复读 Matcher
-pub fn echo2() -> Matcher<MessageEvent> {
-    Matcher::new("Echo2", Echo2 {})
+pub fn echo2(nb: &crate::Nonebot) -> Matcher<MessageEvent> {
+    Matcher::new_with_config("Echo2", Echo2 { max_times: 0 }, nb)
         .add_pre_matcher(prematchers::to_me())
         .add_pre_matcher(prematchers::command_start())
 }

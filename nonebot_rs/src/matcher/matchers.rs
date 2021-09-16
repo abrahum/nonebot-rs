@@ -12,7 +12,7 @@ pub type MatchersHashMap<E> = HashMap<String, Matcher<E>>;
 /// Matchers Action Sender
 pub type ActionSender = broadcast::Sender<super::action::MatchersAction>;
 
-const PLUGIN_NAME: &'static str = "Matchers";
+pub const PLUGIN_NAME: &'static str = "Matcher";
 
 /// 根据 `Event` 类型分类存储对应的 `Matcher`
 #[derive(Clone, Debug)]
@@ -30,7 +30,7 @@ pub struct Matchers {
     /// Matchers Action Sender
     action_sender: ActionSender,
     /// Config
-    config: HashMap<String, HashMap<String, String>>,
+    config: HashMap<String, HashMap<String, toml::Value>>,
 }
 
 impl Matchers {
@@ -270,7 +270,7 @@ impl crate::Plugin for Matchers {
     }
 
     fn load_config(&mut self, config: toml::Value) {
-        let config: HashMap<String, HashMap<String, String>> =
+        let config: HashMap<String, HashMap<String, toml::Value>> =
             config.try_into().expect("Matchers get error config");
         self.config = config;
         event!(Level::INFO, "Loaded Matchers config: {:?}", self.config);

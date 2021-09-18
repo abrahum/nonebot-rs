@@ -38,9 +38,9 @@ API文档地址：[Docs.rs](https://docs.rs/nonebot_rs/)
   - [ ] HTTP (无限期推迟)
   - [ ] 正向 WS (优先考虑)
   - [x] 反向 WS (使用 axum 实现)
-- [x] Onebot v11 标准接口实现(使用 serde 实现)
+- [x] Onebot v11 标准接口实现 (使用 serde 实现)
 - [ ] Onebot v12 实现 (v12 发布在即！)
-- [ ] matcher
+- [x] matcher
   - [x] Built-in matcher
     - [x] echo (基础应答功能)
     - [x] Rcnb (对话功能实现)
@@ -54,14 +54,14 @@ API文档地址：[Docs.rs](https://docs.rs/nonebot_rs/)
 - [x] 文档
 - [x] 定时任务
 - [x] 声明宏
-- [x] logger(tracing-subscriber)
+- [x] logger (tracing-subscriber)
 
 </details>
 
 <details><summary>nbrs_lua</summary>
 
 - [x] 最小实例
-  - [ ] More Developer-friendly api for lua
+- [ ] More Developer-friendly api for lua
 
 </details>
 

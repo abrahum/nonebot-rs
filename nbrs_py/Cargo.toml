@@ -8,7 +8,6 @@ edition = "2018"
 
 [lib]
 name = "nbrs_py"
-crate-type = ["cdylib"]
 
 [dependencies]
 nonebot_rs = { path = "../nonebot_rs" }

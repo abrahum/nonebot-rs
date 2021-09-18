@@ -1,3 +1,4 @@
+use crate::utils::send_event;
 use crate::{ActionSender, EventSender};
 use axum::{
     extract::TypedHeader,
@@ -102,9 +103,7 @@ async fn stream_recv(
             let data: serde_json::Result<RecvItem> = serde_json::from_str(msg.to_str().unwrap());
             match data {
                 Ok(data) => match data {
-                    RecvItem::Event(event) => {
-                        event_sender.send(event).unwrap();
-                    }
+                    RecvItem::Event(event) => send_event(&event_sender, event).await,
                     RecvItem::ApiResp(api_resp) => {
                         apiresp_watch_sender.send(api_resp).unwrap();
                     }

@@ -122,6 +122,7 @@ impl Matchers {
     async fn event_recv(mut self, mut event_receiver: crate::EventReceiver) {
         let mut receiver = self.action_sender.subscribe();
         while let Ok(event) = event_receiver.recv().await {
+
             match receiver.try_recv() {
                 Ok(action) => self.handle_action(action),
                 Err(_) => {}

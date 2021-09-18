@@ -34,7 +34,7 @@ impl Nonebot {
     /// 新建一个 Matchers 为空的 Nonebot 结构体
     pub fn new() -> Self {
         let nb_config = crate::config::NbConfig::load();
-        let (event_sender, _) = broadcast::channel(32);
+        let (event_sender, _) = broadcast::channel(1024); // need largo cache when reconnect
         let (action_sender, action_receiver) = tokio::sync::mpsc::channel(32);
         let (bot_sender, bot_getter) = watch::channel(HashMap::new());
         Nonebot {

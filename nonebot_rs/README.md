@@ -1,19 +1,16 @@
 # Nonebot-rs
 
-Nonebot-rs 简称 nbrs，是一个基于 Nonebot2 思路的 Onebot 协议机器人框架 Rust 实现。
-本框架的基本目标是实现比较便利的 Rust Onebot 机器人搭建。长期目标是以本项目为基础，
-开发与其他脚本语言（比如：Python、Lua）互通的 Onebot 机器人平台（如果我能坚持下去
-的话）。
+Nonebot-rs 简称 nbrs，Onebot 协议机器人框架 Rust 实现。
 
-基于本框架实现的机器人，可以由一下几部分组成：nbrs 核心、Matcher 插件、启动文件，
-每个部分均可独立为单个 crate ，通过启动文件向 nbrs 注册 Matcher 后编译启动的方式
-构建一个机器人实例。
+本框架的基本目标是实现一个可扩展的 Rust Onebot 机器人框架。
 
 ## nbrs 设计
 
-nbrs 启动后，将读取设置文件、并注册 Matchers（其实这一步已经在编译时硬编码），当接
-收到 WebSocket 连接后，加载 Bot 设置，接受 Event 后，由 nbrs 逐级匹配分发到各个 Matcher ，Matcher 处理后，通过 channel 将数据传递回 WebSocket 发送。每个 Event
-的匹配与 Matcher 的处理均为独立协程，以此提高并发性能。
+nbrs 本体负责与 Onebot 实现端建立连接、将 Onebot 通信转化抽象为 Event 与 Bot (可以调用 Onebot Api 的 struct)，并向各 Plugin 分发、读取配置文件。
+
+matcher 是 nbrs 内建的一个 Plugin，思路基于 Nonebot2 的插件式 Matcher，接收 nbrs 推送事件后逐级匹配处理事件。尽可能提供与 Nonebot2 接近的开发体验。
+
+scheduler 为内建定时任务插件。
 
 ## Nonebotrs.toml
 
@@ -56,7 +53,7 @@ fn main() {
         .add_message_matcher(nonebot_rs::builtin::rcnb::rcnb()); // 注册 rcnb Matcher
     nb.add_plugin(scheduler); // 添加 Plugin
 
-    nb.run()                                                     // 运行 Nonebot
+    nb.run() // 运行 Nonebot
 }
 ```
 

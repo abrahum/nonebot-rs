@@ -1,5 +1,6 @@
 // use std::collections::HashMap;
 use crate::log::{colored::*, event, Level};
+use async_trait::async_trait;
 use serde::Deserialize;
 use std::collections::HashMap;
 use tokio_cron_scheduler::{Job, JobScheduler};
@@ -37,11 +38,12 @@ pub struct SchedulerConfig {
 #[derive(Debug, Deserialize)]
 pub struct JobConfig {
     #[serde(flatten)]
-    custom: HashMap<String, String>,
+    custom: HashMap<String, toml::Value>,
 }
 
+#[async_trait]
 impl crate::Plugin for Scheduler {
-    fn run(&self, _: crate::EventReceiver, _: crate::BotGettter) {
+    fn run(&self, _: crate::EventReceiver, _: crate::BotGetter) {
         if !self.config.disable {
             tokio::spawn(self.scheduler.start());
         }
@@ -51,7 +53,7 @@ impl crate::Plugin for Scheduler {
         "Scheduler"
     }
 
-    fn load_config(&mut self, config: toml::Value) {
+    async fn load_config(&mut self, config: toml::Value) {
         self.config = config.try_into().expect("Scheduler load config fail");
         event!(
             Level::INFO,

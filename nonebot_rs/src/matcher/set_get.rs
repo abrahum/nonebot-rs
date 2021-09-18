@@ -1,5 +1,6 @@
 use super::{Handler, Matcher, PreMatcher, Rule};
 use std::sync::Arc;
+use tokio::sync::RwLock;
 
 impl<E> Matcher<E>
 where
@@ -47,12 +48,15 @@ where
     }
 
     /// 获取 handler
-    pub fn get_handler(&self) -> &Arc<dyn Handler<E> + Sync + Send> {
+    pub fn get_handler(&self) -> &Arc<RwLock<dyn Handler<E> + Sync + Send>> {
         &self.handler
     }
 
     /// 设置 handler
-    pub fn set_handler(&mut self, handler: Arc<dyn Handler<E> + Sync + Send>) -> Matcher<E> {
+    pub fn set_handler(
+        &mut self,
+        handler: Arc<RwLock<dyn Handler<E> + Sync + Send>>,
+    ) -> Matcher<E> {
         self.handler = handler;
         self.clone()
     }

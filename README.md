@@ -10,9 +10,15 @@
   <img src="https://img.shields.io/crates/v/nonebot_rs">
 </a>
 
-基于 nonebot2 思路 Onebot SDK Rust 实现。
+**A Onebot SDK in Rust**
 
-计划是实现 Nonebot2 的完整架构，但是由于 rust 的安全性设计，不可避免的出现了一些魔改，正在努力把开发接口包装成类似的样式(是我太菜了)。
+~~计划是实现 Nonebot2 的完整架构~~
+
+一个基础功能完备的可扩展 Onebot SDK ，使用 Plugin 作为扩展。nbrs 本体负责与 Onebot 实现端建立连接、将 Onebot 通信转化抽象为 Event 与 Bot (可以调用 Onebot Api 的 struct)，并向各 Plugin 分发、读取配置文件。
+
+目前作为 feature 内建有 matcher (与 Nonebot 类似机制的匹配处理机制)、scheduler (定时任务) Plugin。(其实 logger 也是一个内建插件)。
+
+目前已经有计划的 Plugin 有: nbrs_lua(lua)、nbrs_py(Python)。
 
 API文档地址：[Docs.rs](https://docs.rs/nonebot_rs/)
 
@@ -21,8 +27,8 @@ API文档地址：[Docs.rs](https://docs.rs/nonebot_rs/)
 - nonebot_rs: nbrs 本体
 - nbrs_no4: nbrs 实例项目
 - nbrs_lua: 使用 lua 为 nbrs 编写插件 (仅最小实例可用) 
+- nbrs_py: nbrs Python Plugin (To-do)
 - nbrs_matcher_r6s: nbrs Rainbow Six Siege 战绩查询插件
-- nbrs_py: 使用 Nonebot_rs 作为核心的 Python module (未达到可用状态)
 
 ## To-Do List
 
@@ -33,34 +39,36 @@ API文档地址：[Docs.rs](https://docs.rs/nonebot_rs/)
   - [ ] 正向 WS (优先考虑)
   - [x] 反向 WS (使用 axum 实现)
 - [x] Onebot v11 标准接口实现(使用 serde 实现)
-  - [x] Event
-  - [x] Message
-  - [x] Api
-- [x] Built-in Handler
-  - [x] logger(tracing-subscriber)
-  - [x] echo (基础应答功能)
-  - [x] Rcnb (对话功能实现，目前写法还很丑陋···想办法打包中)
-- [x] built-in rules pre_matchers
-- [ ] Nbconfig
+- [ ] Onebot v12 实现 (v12 发布在即！)
+- [ ] matcher
+  - [x] Built-in matcher
+    - [x] echo (基础应答功能)
+    - [x] Rcnb (对话功能实现)
+  - [x] built-in rules pre_matchers
+- [x] config
   - [x] 基本设置
   - [x] bot 设置
-  - [ ] Plugin 设置 (需要重构)
+  - [x] Plugin 设置
 - [x] Message 构建 API 完善
-- [x] 插件式 Matcher 实现
-  - [x] prematcher
-  - [x] rules
-  - [x] handler
-  - [x] aftermatcher
-  - [x] Matcher Api
-  - [x] 临时 Matcher 实现对话
+- [x] Plugin
 - [x] 文档
 - [x] 定时任务
 - [x] 声明宏
+- [x] logger(tracing-subscriber)
+
+</details>
+
+<details><summary>nbrs_lua</summary>
+
+- [x] 最小实例
+  - [ ] More Developer-friendly api for lua
 
 </details>
 
 <details><summary>nbrs_py</summary>
-Nothing yet.
+
+- [ ] 最小实例
+
 </details>
 
 ## 特别鸣谢
@@ -92,8 +100,12 @@ command_starts = ["/"]
 access_token = "AccessToken"
 ```
 
-global 设置对每个未指定 bot 都有效，~~当在 global 外特别设置一个 bot 后，所有 global 设置对该 bot 全部失效~~ 可以仅指定部分属性。
+global 设置所有 bot 生效，特别设置后 global 设置将被覆盖。
 
-最小实例请看 nonebot_rs/bin/minimal.rs ，matcher 等等声明请看 builtin 中各项(锐意迭代中)。
+nbrs 最小实例请看 nonebot_rs/src/bin/minimal.rs 或 nbrs_no4/src/main.rs
 
-目前本项目处于 ~~非常不稳定阶段，项目结构、API 均为待定~~ Api 初步稳定，感兴趣的同学可以 Star 一下以后再来看看(厚颜无耻)
+matcher 声明请看 nonebot_rs/src/builtin/echo.rs
+
+scheduler 声明可以查看 nbrs_no4/src/clock.rs
+
+目前本项目 Api 初步稳定。

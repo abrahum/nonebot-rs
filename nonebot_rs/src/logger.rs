@@ -1,4 +1,5 @@
 use crate::event::{Event, MessageEvent, MetaEvent};
+use async_trait::async_trait;
 use colored::*;
 use tracing::{event, Level};
 
@@ -60,8 +61,9 @@ impl Logger {
     }
 }
 
+#[async_trait]
 impl crate::Plugin for Logger {
-    fn run(&self, event_receiver: crate::EventReceiver, _: crate::BotGettter) {
+    fn run(&self, event_receiver: crate::EventReceiver, _: crate::BotGetter) {
         let l = self.clone();
         tokio::spawn(l.event_recv(event_receiver));
     }
@@ -69,4 +71,6 @@ impl crate::Plugin for Logger {
     fn plugin_name(&self) -> &'static str {
         "Logger"
     }
+
+    async fn load_config(&mut self, _: toml::Value) {}
 }

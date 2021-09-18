@@ -9,7 +9,7 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Deserialize)]
 pub struct LuaPlugin {
     #[serde(skip)]
-    bot_getter: Option<nonebot_rs::BotGettter>,
+    bot_getter: Option<nonebot_rs::BotGetter>,
     #[serde(default)]
     #[serde(flatten)]
     scripts: HashMap<String, String>,
@@ -87,8 +87,9 @@ fn run_lua_script(
     }
 }
 
-impl nonebot_rs::Plugin for LuaPlugin {
-    fn run(&self, event_receiver: nonebot_rs::EventReceiver, bot_getter: nonebot_rs::BotGettter) {
+#[async_trait]
+impl Plugin for LuaPlugin {
+    fn run(&self, event_receiver: nonebot_rs::EventReceiver, bot_getter: nonebot_rs::BotGetter) {
         let mut l = self.clone();
         l.bot_getter = Some(bot_getter.clone());
         tokio::spawn(l.event_recv(event_receiver));
@@ -98,7 +99,7 @@ impl nonebot_rs::Plugin for LuaPlugin {
         "Lua"
     }
 
-    fn load_config(&mut self, config: toml::Value) {
+    async fn load_config(&mut self, config: toml::Value) {
         let luap: LuaPlugin = config.try_into().expect("Lua get error config");
         self.scripts = luap.scripts;
         event!(Level::INFO, "Loaded lua scripts: {:?}", self.scripts);

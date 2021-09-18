@@ -60,12 +60,14 @@ impl Handler<MessageEvent> for Echo2 {
         if let Some(data) = config.get("max_times") {
             self.max_times = data.clone().try_into().expect("max_times 不是正整数");
         }
+        use tracing::{event, Level};
+        event!(Level::DEBUG, "Load max echo times:{}", self.max_times);
     }
 }
 
 /// 无限复读 Matcher
-pub fn echo2(nb: &crate::Nonebot) -> Matcher<MessageEvent> {
-    Matcher::new_with_config("Echo2", Echo2 { max_times: 0 }, nb)
+pub fn echo2() -> Matcher<MessageEvent> {
+    Matcher::new("Echo2", Echo2 { max_times: 0 })
         .add_pre_matcher(prematchers::to_me())
         .add_pre_matcher(prematchers::command_start())
 }

@@ -5,6 +5,7 @@ use crate::Action;
 use async_trait::async_trait;
 use std::collections::HashMap;
 use std::sync::Arc;
+use tokio::sync::RwLock;
 
 mod action;
 #[doc(hidden)]
@@ -38,19 +39,19 @@ where
     /// Matchers Action Sender
     action_sender: Option<matchers::ActionSender>,
     /// Matcher 的匹配优先级
-    priority: i8,
+    pub priority: i8,
     /// 前处理函数组，获取 &mut event
     pre_matchers: Vec<Arc<PreMatcher<E>>>,
     /// rule 组
     rules: Vec<Rule<E>>,
     /// 是否阻止事件向下一级传递
-    block: bool,
+    pub block: bool,
     /// Matcher 接口函数与可配置项结构体
-    handler: Arc<dyn Handler<E> + Sync + Send>,
+    handler: Arc<RwLock<dyn Handler<E> + Sync + Send>>,
     /// 是否被禁用
-    disable: bool,
+    pub disable: bool,
     /// 是否为临时 Matcher
-    temp: bool,
+    pub temp: bool,
     /// 过期时间戳
     pub timeout: Option<i64>,
 
@@ -84,6 +85,8 @@ where
 {
     /// 新 Bot 连接时，调用该函数
     fn on_bot_connect(&self, _: Matcher<E>) {}
+    /// Bot 断开连接时，调用该函数
+    fn on_bot_disconnect(&self, _: Matcher<E>) {}
     /// timeout drop 函数
     fn timeout_drop(&self, _: &Matcher<E>) {}
     /// 匹配函数
@@ -91,12 +94,6 @@ where
     /// 处理函数
     async fn handle(&self, event: E, matcher: Matcher<E>);
     /// Load config
-    ///
-    /// 请注意该载入函数在 tracing log 初始化之前运行，在该函数内不应该使用
-    /// tracing（也无法使用）
-    ///
-    /// 请避免使用与 matcher 固有的同名属性（例如，priority、block、disable、
-    /// temp）这些属性将被直接载入到 Matcher（你想用我也拦不住你）
     #[allow(unused_variables)]
     fn load_config(&mut self, config: HashMap<String, toml::Value>) {}
 }
@@ -116,7 +113,7 @@ where
     ///     pre_matchers: vec![],
     ///     rules: vec![],
     ///     block: true,
-    ///     handler: Arc::new(handler),
+    ///     handler: Arc::new(RwLock::new(handler)),
     ///     disable: false,
     ///     temp: false,
     ///     timeout: None,
@@ -136,28 +133,13 @@ where
             pre_matchers: vec![],
             rules: vec![],
             block: true,
-            handler: Arc::new(handler),
+            handler: Arc::new(RwLock::new(handler)),
             disable: false,
             temp: false,
             timeout: None,
 
             event: None,
         }
-    }
-
-    /// Handler 载入 nb 提供的 config 创建 Matcher
-    pub fn new_with_config<H>(name: &str, mut handler: H, nb: &crate::Nonebot) -> Matcher<E>
-    where
-        H: Handler<E> + Sync + Send + 'static,
-    {
-        let matchers_config: Option<HashMap<String, HashMap<String, toml::Value>>> =
-            nb.config.get_config(&matchers::PLUGIN_NAME.to_lowercase());
-        if let Some(config) = &matchers_config {
-            if let Some(config) = config.get(&name.to_lowercase()) {
-                handler.load_config(config.clone());
-            }
-        }
-        Matcher::new(name, handler)
     }
 
     #[doc(hidden)]
@@ -198,7 +180,10 @@ where
         if let Some(timeout) = self.timeout {
             if timestamp() > timeout {
                 matchers.remove_matcher(&self.name);
-                self.handler.timeout_drop(&self);
+                {
+                    let handler = self.handler.read().await;
+                    handler.timeout_drop(&self);
+                }
                 return false;
             }
         }
@@ -211,12 +196,18 @@ where
         if !self.check_rules(&event, &config) {
             return false;
         }
-        let handler = self.handler.clone();
-        if !handler.match_(&mut event) {
-            return false;
+        {
+            let handler = self.handler.read().await;
+            if !handler.match_(&mut event) {
+                return false;
+            }
+            let matcher = self.clone().set_event(&event);
+            let handler = self.handler.clone();
+            tokio::spawn(async move {
+                let handler = handler.read().await;
+                handler.handle(event, matcher).await
+            });
         }
-        let matcher = self.clone().set_event(&event);
-        tokio::spawn(async move { handler.handle(event, matcher).await });
         return true;
     }
 

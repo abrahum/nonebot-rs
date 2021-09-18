@@ -1,9 +1,12 @@
 use crate::event::{Event, MessageEvent, MetaEvent, NoticeEvent, RequestEvent, SelfId};
 use crate::matcher::Matcher;
+use async_trait::async_trait;
 use colored::*;
 use std::collections::{BTreeMap, HashMap};
 use tokio::sync::broadcast;
 use tracing::{event, Level};
+
+mod action;
 
 /// 按 `priority` 依序存储 `MatchersHashMap`
 pub type MatchersBTreeMap<E> = BTreeMap<i8, MatchersHashMap<E>>;
@@ -26,7 +29,7 @@ pub struct Matchers {
     /// MetaEvent 对应 MatcherBTreeMap
     pub meta: MatchersBTreeMap<MetaEvent>,
     /// Bot Watch channel Receiver
-    bot_getter: Option<crate::BotGettter>,
+    bot_getter: Option<crate::BotGetter>,
     /// Matchers Action Sender
     action_sender: ActionSender,
     /// Config
@@ -34,125 +37,6 @@ pub struct Matchers {
 }
 
 impl Matchers {
-    /// 新建 Matchers
-    pub fn new(
-        message: Option<MatchersBTreeMap<MessageEvent>>,
-        notice: Option<MatchersBTreeMap<NoticeEvent>>,
-        request: Option<MatchersBTreeMap<RequestEvent>>,
-        meta: Option<MatchersBTreeMap<MetaEvent>>,
-    ) -> Matchers {
-        let (sender, _) = broadcast::channel(32);
-        Matchers {
-            message: unoptionb(&message),
-            notice: unoptionb(&notice),
-            request: unoptionb(&request),
-            meta: unoptionb(&meta),
-            bot_getter: None,
-            action_sender: sender,
-            config: HashMap::new(),
-        }
-    }
-
-    /// 新建空 Matchers
-    pub fn new_empty() -> Matchers {
-        Matchers::new(None, None, None, None)
-    }
-
-    pub fn get(&mut self, m: &Matchers) {
-        self.message = m.message.clone();
-        self.notice = m.notice.clone();
-        self.request = m.request.clone();
-        self.meta = m.meta.clone();
-    }
-
-    /// Bot 连接时运行所有 Matcher on_bot_connect 方法
-    pub fn run_on_connect(&self, bot: crate::bot::Bot) {
-        fn run_on_connect_<E>(matcherb: &MatchersBTreeMap<E>, bot: crate::bot::Bot)
-        where
-            E: Clone,
-        {
-            for (_, matcherh) in matcherb {
-                for (_, matcher) in matcherh {
-                    matcher
-                        .build(bot.clone())
-                        .get_handler()
-                        .on_bot_connect(matcher.clone());
-                }
-            }
-        }
-
-        log_load_matchers(&self);
-        run_on_connect_(&self.message, bot.clone());
-        run_on_connect_(&self.notice, bot.clone());
-        run_on_connect_(&self.request, bot.clone());
-        run_on_connect_(&self.meta, bot.clone());
-    }
-
-    /// 向 Matchers 添加 Matcher<MessageEvent>
-    pub fn add_message_matcher(&mut self, mut matcher: Matcher<MessageEvent>) -> &mut Self {
-        matcher.set_action_sender(self.action_sender.clone());
-        match self.message.get(&matcher.priority) {
-            Some(_) => {
-                self.message
-                    .get_mut(&matcher.priority)
-                    .unwrap()
-                    .insert(matcher.name.clone(), matcher);
-            }
-            None => {
-                let mut hashmap: MatchersHashMap<MessageEvent> = HashMap::new();
-                hashmap.insert(matcher.name.clone(), matcher.clone());
-                self.message.insert(matcher.priority, hashmap);
-            }
-        }
-        self
-    }
-
-    /// 向 Matchers 添加 Vec<Matcher<MessageEvent>>
-    pub fn add_message_matchers(&mut self, matchers: Vec<Matcher<MessageEvent>>) -> &mut Self {
-        for m in matchers {
-            self.add_message_matcher(m);
-        }
-        self
-    }
-
-    /// 根据 Matcher.name 从 Matchers 移除 Matcher
-    pub fn remove_matcher(&mut self, name: &str) {
-        fn remove_matcher_<E>(matcherb: &mut MatchersBTreeMap<E>, name: &str)
-        where
-            E: Clone,
-        {
-            for (_, matcherh) in matcherb.iter_mut() {
-                if let Some(_) = matcherh.remove(name) {
-                    return;
-                }
-            }
-        }
-
-        remove_matcher_(&mut self.message, name);
-        remove_matcher_(&mut self.notice, name);
-        remove_matcher_(&mut self.request, name);
-        remove_matcher_(&mut self.meta, name);
-    }
-
-    /// 根据 Matcher.name disable Matcher
-    pub fn disable_matcher(&mut self, name: &str, disable: bool) {
-        fn disable_matcher_<E>(matcherb: &mut MatchersBTreeMap<E>, name: &str, disable: bool)
-        where
-            E: Clone,
-        {
-            for (_, matcherh) in matcherb.iter_mut() {
-                if let Some(matcher) = matcherh.get_mut(name) {
-                    matcher.set_disable(disable);
-                }
-            }
-        }
-
-        disable_matcher_(&mut self.message, name, disable);
-        disable_matcher_(&mut self.notice, name, disable);
-        disable_matcher_(&mut self.request, name, disable);
-        disable_matcher_(&mut self.meta, name, disable);
-    }
-
     async fn handle_events(&mut self, event: Event, bot: &crate::bot::Bot) {
         match event {
             Event::Message(e) => {
@@ -170,8 +54,13 @@ impl Matchers {
                 self.handle_event(self.meta.clone(), e, bot.clone()).await;
             }
             Event::Nonebot(e) => match e {
-                crate::event::NbEvent::BotConnect { bot } => self.run_on_connect(bot),
-                crate::event::NbEvent::BotDisconnect { bot: _ } => {}
+                crate::event::NbEvent::BotConnect { bot } => {
+                    log_load_matchers(&self);
+                    self.run_on_connect(bot, false).await;
+                }
+                crate::event::NbEvent::BotDisconnect { bot } => {
+                    self.run_on_connect(bot, true).await;
+                }
             },
         }
     }
@@ -246,20 +135,9 @@ impl Matchers {
     }
 }
 
-#[doc(hidden)]
-fn unoptionb<K, D>(input: &Option<BTreeMap<K, D>>) -> BTreeMap<K, D>
-where
-    K: Clone + std::cmp::Ord,
-    D: Clone,
-{
-    match input {
-        Some(t) => t.clone(),
-        None => BTreeMap::new(),
-    }
-}
-
+#[async_trait]
 impl crate::Plugin for Matchers {
-    fn run(&self, event_receiver: crate::EventReceiver, bot_getter: crate::BotGettter) {
+    fn run(&self, event_receiver: crate::EventReceiver, bot_getter: crate::BotGetter) {
         let mut m = self.clone();
         m.bot_getter = Some(bot_getter.clone());
         tokio::spawn(m.event_recv(event_receiver));
@@ -269,10 +147,11 @@ impl crate::Plugin for Matchers {
         PLUGIN_NAME
     }
 
-    fn load_config(&mut self, config: toml::Value) {
+    async fn load_config(&mut self, config: toml::Value) {
         let config: HashMap<String, HashMap<String, toml::Value>> =
             config.try_into().expect("Matchers get error config");
         self.config = config;
+        self.load_all_matcher_config().await;
         event!(Level::INFO, "Loaded Matchers config: {:?}", self.config);
     }
 }

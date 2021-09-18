@@ -14,7 +14,7 @@ nonebot_rs = { path = "../nonebot_rs" }
 
 [dependencies.pyo3]
 version = "0.14.2"
-features = ["extension-module"]
+features = ["extension-module", "auto-initialize"]
 
 [dependencies.pyo3-asyncio]
 version = "0.14"

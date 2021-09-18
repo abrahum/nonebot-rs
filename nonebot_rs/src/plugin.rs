@@ -14,6 +14,9 @@ pub mod prelude {
 /// A trait for nbrs plugins
 #[async_trait]
 pub trait Plugin: std::fmt::Debug {
+    /// 初始化
+    #[allow(unused_variables)]
+    fn init(&mut self, bot_getter: crate::BotGetter) {}
     /// Plugin 启动函数，在 nb 启动时调用一次，不应当阻塞
     fn run(&self, event_receiver: crate::EventReceiver, bot_getter: crate::BotGetter);
     /// Plugin Name 用于注册 Plugin 时标识唯一性

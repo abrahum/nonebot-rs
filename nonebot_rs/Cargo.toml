@@ -30,6 +30,7 @@ async-recursion = "0.3.2"
 colored = "2.0.0"
 rcnb-rs = "0.1.0"
 config = "0.11.0"
+tokio-tungstenite = "0.15"
 
 [dependencies.serde]
 version = "1.0"

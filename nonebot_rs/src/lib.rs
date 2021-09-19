@@ -173,6 +173,7 @@ pub mod axum_driver;
 mod bot;
 /// 内建组件
 pub mod builtin;
+pub mod comms;
 /// nbrs 设置项
 pub mod config;
 /// Onebot 事件

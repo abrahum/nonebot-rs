@@ -110,7 +110,14 @@ impl Nonebot {
     pub async fn async_run(mut self) {
         self.pre_run().await;
         let access_tokens = self.config.gen_access_token();
-        tokio::spawn(crate::axum_driver::run(
+        // tokio::spawn(crate::axum_driver::run(
+        //     self.config.global.host,
+        //     self.config.global.port,
+        //     self.event_sender.clone(),
+        //     self.action_sender.clone(),
+        //     access_tokens,
+        // ));
+        tokio::spawn(crate::comms::revs_ws::run(
             self.config.global.host,
             self.config.global.port,
             self.event_sender.clone(),

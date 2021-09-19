@@ -168,8 +168,6 @@ mod action;
 pub mod api;
 /// Onebot Api Response
 pub mod api_resp;
-#[doc(hidden)]
-pub mod axum_driver;
 mod bot;
 /// 内建组件
 pub mod builtin;
@@ -219,9 +217,6 @@ pub use scheduler::Scheduler;
 #[cfg(feature = "matcher")]
 #[cfg_attr(docsrs, doc(cfg(feature = "matcher")))]
 pub use matcher::matchers::Matchers;
-
-#[macro_use]
-extern crate lazy_static;
 
 /// Onebot Api mpsc channel Bot 发送 WebSocket 接收
 pub type ApiSender = mpsc::Sender<ApiChannelItem>;

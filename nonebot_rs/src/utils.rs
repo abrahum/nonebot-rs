@@ -1,8 +1,3 @@
-use crate::event::Event;
-use async_recursion::async_recursion;
-use tokio::sync::broadcast;
-use tracing::{event, Level};
-
 /// 去除字符串前方多余空格
 #[allow(dead_code)]
 pub fn remove_space(s: &str) -> String {
@@ -20,17 +15,6 @@ use chrono::Local;
 pub fn timestamp() -> i64 {
     let time = Local::now();
     time.timestamp()
-}
-
-#[async_recursion]
-pub async fn send_event(sender: &broadcast::Sender<Event>, e: Event) -> () {
-    match sender.send(e) {
-        Ok(_) => (),
-        Err(broadcast::error::SendError(_)) => {
-            event!(Level::ERROR, "EventChannel is full out of cache!");
-            std::process::exit(101);
-        }
-    }
 }
 
 use serde::Deserializer;

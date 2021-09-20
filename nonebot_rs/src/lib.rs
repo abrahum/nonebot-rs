@@ -2,21 +2,19 @@
 #![doc(html_logo_url = "https://v2.nonebot.dev/logo.png")]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-//! Nonebot-rs 简称 nbrs，是一个基于 Nonebot2 思路的 Onebot 协议机器人框架 Rust 实现。
-//! 本框架的基本目标是实现比较便利的 Rust Onebot 机器人搭建。长期目标是以本项目为基础，
-//! 开发与其他脚本语言（比如：Python、Lua）互通的 Onebot 机器人平台（如果我能坚持下去
-//! 的话）。
+//! # Nonebot-rs
 //!
-//! 基于本框架实现的机器人，可以由一下几部分组成：nbrs 核心、Matcher 插件、启动文件，
-//! 每个部分均可独立为单个 crate ，通过启动文件向 nbrs 注册 Matcher 后编译启动的方式
-//! 构建一个机器人实例。
+//! Nonebot-rs 简称 nbrs，Onebot 协议机器人框架 Rust 实现。
+//!
+//! 本框架的基本目标是实现一个可扩展的 Rust Onebot 机器人框架。
 //!
 //! ## nbrs 设计
 //!
-//! nbrs 启动后，将读取设置文件、并注册 Matchers（其实这一步已经在编译时硬编码），当接
-//! 收到 WebSocket 连接后，加载 Bot 设置，接受 Event 后，由 nbrs 逐级匹配分发到各个
-//!  Matcher ，Matcher 处理后，通过 channel 将数据传递回 WebSocket 发送。每个 Event
-//! 的匹配与 Matcher 的处理均为独立协程，以此提高并发性能。
+//! nbrs 本体负责与 Onebot 实现端建立连接、将 Onebot 通信转化抽象为 Event 与 Bot (可以调用 Onebot Api 的 struct)，并向各 Plugin 分发、读取配置文件。
+//!
+//! matcher 是 nbrs 内建的一个 Plugin，思路基于 Nonebot2 的插件式 Matcher，接收 nbrs 推送事件后逐级匹配处理事件。尽可能提供与 Nonebot2 接近的开发体验。
+//!
+//! scheduler 为内建定时任务插件。
 //!
 //! ## Nonebotrs.toml
 //!
@@ -24,24 +22,29 @@
 //!
 //! ```toml
 //! [global]                     # 全局设置
-//! host = "127.0.0.1"           # 监听 host
-//! port = 8088                  # 监听 port
 //! debug = true                 # 开启 debug log
 //! superusers = ["YourID"]      # 全局管理员账号
 //! nicknames = ["nickname"]     # 全局 Bot 昵称
 //! command_starts = ["/"]       # 全局命令起始符
+//!
+//! [ws_server]                  # 反向 WS 服务器
+//! host = "127.0.0.1"           # 监听 host
+//! port = 8088                  # 监听 port
 //! access_token = "AccessToken" # 连接鉴权使用
 //!
 //! [bots.BotID]                 # Bot 设置
 //! superusers = ["YourID"]      # 管理员账户
 //! nicknames = ["nickname"]     # Bot 昵称
 //! command_starts = ["/"]       # 命令起始符
+//! ws_server = "server address" # 正向 WS 服务器地址（缺省不启用正向 WS 连接）
 //! access_token = "AccessToken" # 连接鉴权使用
 //! ```
 //!
 //! ## Plugin
 //!
 //! > To-do
+//! >
+//! > 暂时可以参考 Mathcers （咕咕咕）
 //!
 //! ## Matcher
 //!
@@ -53,13 +56,13 @@
 //! fn main() {
 //!     let mut nb = nonebot_rs::Nonebot::new(); // 新建 Nonebot
 //!
-//!     let mut matchers = nonebot_rs::Matchers::new_empty();        // 新建空 Matchers Plugin
+//!     let mut matchers = nonebot_rs::Matchers::new_empty(); // 新建空 Matchers Plugin
 //!     matchers
 //!         .add_message_matcher(nonebot_rs::builtin::echo::echo())  // 注册 echo Matcher
 //!         .add_message_matcher(nonebot_rs::builtin::rcnb::rcnb()); // 注册 rcnb Matcher
-//!     nb.add_plugin(scheduler);                                    // 添加 Plugin
+//!     nb.add_plugin(scheduler); // 添加 Plugin
 //!
-//!     nb.run()                                                     // 运行 Nonebot
+//!     nb.run() // 运行 Nonebot
 //! }
 //! ```
 //!
@@ -171,6 +174,7 @@ pub mod api_resp;
 mod bot;
 /// 内建组件
 pub mod builtin;
+#[doc(hidden)]
 pub mod comms;
 /// nbrs 设置项
 pub mod config;

@@ -89,6 +89,7 @@ impl Matchers {
         f(&self.meta, &self.config).await;
     }
 
+    #[doc(hidden)]
     fn add_matcher<E>(
         matcherb: &mut MatchersBTreeMap<E>,
         mut matcher: Matcher<E>,

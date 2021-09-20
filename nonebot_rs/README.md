@@ -18,18 +18,21 @@ scheduler 为内建定时任务插件。
 
 ```toml
 [global]                     # 全局设置
-host = "127.0.0.1"           # 监听 host
-port = 8088                  # 监听 port
 debug = true                 # 开启 debug log
 superusers = ["YourID"]      # 全局管理员账号
 nicknames = ["nickname"]     # 全局 Bot 昵称
 command_starts = ["/"]       # 全局命令起始符
+
+[ws_server]                  # 反向 WS 服务器
+host = "127.0.0.1"           # 监听 host
+port = 8088                  # 监听 port
 access_token = "AccessToken" # 连接鉴权使用
 
 [bots.BotID]                 # Bot 设置
 superusers = ["YourID"]      # 管理员账户
 nicknames = ["nickname"]     # Bot 昵称
 command_starts = ["/"]       # 命令起始符
+ws_server = "server address" # 正向 WS 服务器地址（缺省不启用正向 WS 连接）
 access_token = "AccessToken" # 连接鉴权使用
 ```
 

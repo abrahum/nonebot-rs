@@ -36,8 +36,8 @@ API文档地址：[Docs.rs](https://docs.rs/nonebot_rs/)
 
 - [ ] onebot 通讯方式
   - [ ] HTTP (无限期推迟)
-  - [ ] 正向 WS (优先考虑)
-  - [x] 反向 WS (使用 axum 实现)
+  - [x] 正向 WS (Err 未全部处理)
+  - [x] 反向 WS
 - [x] Onebot v11 标准接口实现 (使用 serde 实现)
 - [ ] Onebot v12 实现 (v12 发布在即！)
 - [x] matcher
@@ -84,20 +84,23 @@ API文档地址：[Docs.rs](https://docs.rs/nonebot_rs/)
 简单说明一下项目运行配置
 
 ```toml
-[global]
-host = "127.0.0.1"
-port = 8088
-debug = true
-superusers = ["YourID"]
-nicknames = ["nickname"]
-command_starts = ["/"]
-access_token = "AccessToken"
+[global]                     # 全局设置
+debug = true                 # 开启 debug log
+superusers = ["YourID"]      # 全局管理员账号
+nicknames = ["nickname"]     # 全局 Bot 昵称
+command_starts = ["/"]       # 全局命令起始符
 
-[bots.BotID]
-superusers = ["YourID"]
-nicknames = ["nickname"]
-command_starts = ["/"]
-access_token = "AccessToken"
+[ws_server]                  # 反向 WS 服务器
+host = "127.0.0.1"           # 监听 host
+port = 8088                  # 监听 port
+access_token = "AccessToken" # 连接鉴权使用
+
+[bots.BotID]                 # Bot 设置
+superusers = ["YourID"]      # 管理员账户
+nicknames = ["nickname"]     # Bot 昵称
+command_starts = ["/"]       # 命令起始符
+ws_server = "server address" # 正向 WS 服务器地址（缺省不启用正向 WS 连接）
+access_token = "AccessToken" # 连接鉴权使用
 ```
 
 global 设置所有 bot 生效，特别设置后 global 设置将被覆盖。

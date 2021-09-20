@@ -67,7 +67,7 @@ pub async fn handler_web_socket(
         }
     };
     tokio::spawn(income);
-    tokio::spawn(outcome);
+    outcome.await;
 }
 
 async fn stream_recv(

@@ -13,6 +13,8 @@ pub struct NbConfig {
     pub global: GlobalConfig,
     /// bot 配置
     pub bots: Option<HashMap<String, BotConfig>>,
+    /// 反向 WS 服务器设置
+    pub ws_server: Option<WebSocketServerConfig>,
     #[serde(skip)]
     config: Config, // save the full config
 }
@@ -26,13 +28,22 @@ impl std::fmt::Debug for NbConfig {
     }
 }
 
-/// nbrs 全局配置
+/// 反向 WS 服务器设置
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct GlobalConfig {
+pub struct WebSocketServerConfig {
     /// Host
     pub host: std::net::Ipv4Addr,
     /// Port
     pub port: u16,
+    /// Onebot authorization
+    #[serde(alias = "access-token")]
+    #[serde(default)]
+    access_token: String,
+}
+
+/// nbrs 全局配置
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GlobalConfig {
     /// Debug 模式
     pub debug: bool,
     /// Trace 模式
@@ -43,9 +54,6 @@ pub struct GlobalConfig {
     pub nicknames: Vec<String>,
     /// 全局命令起始符设置
     pub command_starts: Vec<String>,
-    #[serde(alias = "access-token")]
-    #[serde(default)]
-    access_token: String, // Onebot authorization
 }
 
 /// nbrs bot 配置
@@ -66,6 +74,9 @@ pub struct BotConfig {
     #[serde(alias = "access-token")]
     #[serde(default)]
     access_token: String, // Onebot authorization
+    /// 正向 WS 地址
+    #[serde(default)]
+    pub ws_server: String,
 }
 
 impl Default for BotConfig {
@@ -76,6 +87,7 @@ impl Default for BotConfig {
             nicknames: vec![],
             command_starts: vec![],
             access_token: String::default(),
+            ws_server: String::default(),
         }
     }
 }
@@ -84,17 +96,19 @@ impl Default for NbConfig {
     fn default() -> Self {
         NbConfig {
             global: GlobalConfig {
-                host: std::net::Ipv4Addr::new(127, 0, 0, 1),
-                port: 8088,
                 debug: true,
                 trace: None,
                 superusers: vec![],
                 nicknames: vec![],
                 command_starts: vec!["/".to_string()],
-                access_token: String::default(),
             },
             bots: None,
             config: Config::default(),
+            ws_server: Some(WebSocketServerConfig {
+                host: std::net::Ipv4Addr::new(127, 0, 0, 1),
+                port: 8088,
+                access_token: String::default(),
+            }),
         }
     }
 }
@@ -150,8 +164,14 @@ impl NbConfig {
             superusers: self.global.superusers.clone(),
             nicknames: self.global.nicknames.clone(),
             command_starts: self.global.command_starts.clone(),
-            access_token: self.global.access_token.clone(),
+            access_token: String::default(),
+            ws_server: String::default(),
         };
+
+        if let Some(server_config) = &self.ws_server {
+            rbotconfig.access_token = server_config.access_token.clone();
+        }
+
         if let Some(bots_config) = &self.bots {
             if let Some(bot_config) = bots_config.get(bot_id) {
                 if !bot_config.superusers.is_empty() {
@@ -173,7 +193,11 @@ impl NbConfig {
 
     pub fn gen_access_token(&self) -> AccessToken {
         let mut at = AccessToken {
-            global: self.global.access_token.clone(),
+            global: if let Some(ws_server_config) = &self.ws_server {
+                ws_server_config.access_token.clone()
+            } else {
+                String::default()
+            },
             bots: HashMap::default(),
         };
         if let Some(bots) = &self.bots {
@@ -195,6 +219,14 @@ pub struct AccessToken {
 }
 
 impl AccessToken {
+    pub fn get(&self, bot_id: &str) -> &str {
+        if let Some(a) = self.bots.get(bot_id) {
+            a
+        } else {
+            &self.global
+        }
+    }
+
     pub fn check_auth(&self, bot_id: &str, token: Option<String>) -> bool {
         let access_token = if let Some(a) = self.bots.get(bot_id) {
             &a
